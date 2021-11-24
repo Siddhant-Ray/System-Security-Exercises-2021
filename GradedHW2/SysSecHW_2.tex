@@ -1,0 +1,373 @@
+ % IMPORTANT: add or remove (comment out) the boolean '\solutiontrue' below to
+% create the solution document or the exercise document respectively.
+% First we create the switch to make either the exercises or the solutions
+\newif\ifsolution\solutionfalse
+% To create the solution uncomment '\solutiontrue'
+\solutiontrue
+
+\documentclass[a4paper,11pt]{article}
+\title{System Security\\
+Bot Analysis}
+
+\ifsolution
+\author{\bf Solution}
+\else
+\author{\bf Graded Assignment}
+\fi
+
+\ifsolution
+\author{Siddhant Ray }
+\fi
+
+\usepackage[T1]{fontenc}
+\usepackage{ae, aecompl}
+\usepackage{a4wide}
+\usepackage{boxedminipage}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{alltt}
+\usepackage{hyperref}
+
+% Some useful commands and environments
+\usepackage{framed}
+\newenvironment{solution}%
+{\par{\noindent\small\textit{Solution:}}\vspace{-12pt}\begin{framed}}%
+{\end{framed}\par}
+
+
+
+%% tty - for displaying TTY input and output
+\newenvironment{tty}%
+{\small\begin{alltt}}%
+{\end{alltt}}
+
+\begin{document}
+\maketitle
+
+In this exercise you will reverse engineer a bot. Bots that are part of a botnet
+can be controlled by a botmaster in various ways. In this case the botmaster
+uses a chatroom to communicate with one or more bots. Your task is to find the
+commands that the botmaster can use and that the bot understands. 
+
+You should run the bot inside the provided VM. This way things will
+work as expected and you are protected from possible vulnerabilities of the bot. The VM also contains useful tools for the analysis, such as gdb and Ghidra.
+
+\begin{enumerate}
+\item Start the chatroom by running \verb|python3 chatroom.py|. By
+default the chatroom will listen for local connections on port 4567. It simply
+forwards all messages it receives to all connected parties.
+\item Run the chatclient using \verb|python3 chatclient.py|. The client will
+be your interface to the chatroom. It allows you to send commands and receive
+output.
+\item Start the bot, e.g. by running \verb|./bot 127.0.0.1 4567|. This way the
+bot will connect to the chatroom. You should see a greeting message from the bot
+in your chat client.
+\item You can run multiple clients and bots.
+\end{enumerate}
+
+\noindent\emph{Note: You are not allowed to answer the questions by referring to the python scripts.}
+
+Reverse Engineering can be done in different ways. Among variations there are
+black- and white-box approaches. In black-box approaches the externally
+observable data is used. It often provides a good start. Good tools for
+black-box analysis are \texttt{strings}, \texttt{strace}, \texttt{lsof},
+\texttt{ps}, \texttt{netstat} or \texttt{wireshark}. Especially \texttt{strings}
+might be useful for you as it extracts readable strings from the executable.
+
+\subsubsection*{How does the bot communicate with the chat room? Using TCP or
+UDP? Is the transmission encrypted? How did you find these answers?
+\ifsolution (1 point) \fi}
+\ifsolution
+\begin{solution}
+
+\begin{verbatim}
+
+The bot communicates using TCP, I checked this using the tcpdump command
+and listened for packets on all interfaces of the port 4567. The command 
+is given by: 
+
+sudo tcpdump -i any port 4567 -vvv -l -A
+
+Flags : -i any means on all interfaces
+        port 4567 specifies the port 
+        -vvv is for specifying the ouput as fully verbose
+        -l is to list the output in lines
+        -A dumps the payload of the packets
+        
+Output:
+
+14:35:22.636699 IP (tos 0x0, ttl 64, id 9022, offset 0, flags [DF],
+proto TCP (6), length 57)
+localhost.57486 > localhost.4567: Flags [P.], cksum 0xfe2d (incorrect -> 0xa4ab), seq 1714409768:1714409773, ack 1067720953, win 512, options
+[nop,nop,TS val 2469146062 ecr 2468851634], length 5
+E..9#>@.@...............f/.(?. ......-.....
+.,-..'..hello
+
+I sent the message "hello" to the chat client, and it can clearly be seen
+that the message is not encrypted as hello is in plain text in the payload.
+\end{verbatim}
+
+\end{solution}\fi
+
+White-box approaches use introspection of the program, e.g. using a debugger.
+However, this can be a very time-consuming task. As your task is to identify the
+bot commands you do not have to analyse the whole program. Think about where the
+received commands will be handled. If you are unfamiliar with network sockets
+check which function is used to receive the
+data~\footnote{\url{https://en.wikipedia.org/wiki/Berkeley_sockets}}.
+
+You can either set a breakpoint directly after the data is received or attach to
+the process when the bot is waiting for new commands and then continue stepping
+through the program to observe the data handling.
+
+\subsubsection*{Which system call is used to receive possible commands? Where is the code called (e.g., \texttt{0x08040000})? \ifsolution (1 point) \fi}
+\ifsolution
+\begin{solution}
+
+\begin{verbatim}
+
+Over here, a combination of listen, select and read is used to receive and
+read the commands received.
+    
+listen (0x32) sets up the socket for listening to and sets up the
+file descriptor. This is where the listen function is called: 
+
+0x555555556dae <main+766>       call   0x5555555561b0 <listen@plt>
+
+The select syscall (0x17) is used as a polling resource, it waits till a 
+particular file descriptor is available and then, read is called on the
+file descriptor once it is ready. This is where the select function is
+called: 
+
+0x555555556ea5 <main+1013>      call   0x555555556180 <select@plt>
+
+This can be done in gdb by setting a breakpoint at the line using
+break *main + line_number. I guess this line number based on where 
+the syscall is executed, which is caught with catch syscall.
+
+Entire flow was :
+catch syscall 0x32
+catch syscall (verifies we hit 0x17 after listen is invoked)
+catch syscall 
+
+This returned main+771 , and then I guessed the line where the code is
+called. I know this because I can guess the line which is just a few before
+where the code enters the listen() or select() call, and that's where the
+function is called.
+
+With that, I determined the memory location where listen and select
+were called. disass main was also useful for verifying this information.
+
+\end{verbatim}
+
+\end{solution}\fi
+
+
+Now you have to understand which commands are accepted by the bot. Check how the
+commands are filtered and parsed. Once you think you found a command try it and
+observe its functionality.
+
+\subsubsection*{Which commands does the bot accept? List their names, their functionality, describe the output. If external files, such as images are used, include those files into your report. You should understand at least four commands.
+\ifsolution (2 points for each command) \fi}
+
+\ifsolution
+\begin{solution}
+\begin{verbatim}
+
+Using the strings CLI method, most of the commands can be retrieved.
+
+These are the commands the bot accepts: 
+
+    .info - This command gives information about the BOTs ID ,environment 
+    of the user (getenv("USER")), hostname (gethostname()), uname(&var),
+    release version of the OS and architecture of the machine. 
+    
+    output of .info -
+    bot-3939: syssec, syssec-vm, Linux, 5.11.0-38-generic, x86_64
+
+    .kill - This command is used to shut down all the running bots.
+    output of .kill - All the bots are shut down.
+    
+    .processes - Shows all the running processes currently running along
+    with their PIDs.
+    output of .processes - 
+    bot-3806: 
+    PID TTY          TIME CMD
+   1958 tty2     00:00:22 Xorg
+   2002 tty2     00:00:00 gnome-session-b
+   3799 pts/0    00:00:00 python3
+   3802 pts/1    00:00:00 python3
+   3806 pts/2    00:00:00 bot
+   3860 pts/4    00:00:00 bash
+   3862 pts/4    00:01:04 java
+   3991 pts/4    00:00:00 demangler_gnu_v
+   3997 pts/4    00:00:00 decompile
+   4280 pts/3    00:00:00 gdb
+   4287 pts/3    00:00:00 bot
+   4350 pts/2    00:00:00 sh
+   4351 pts/2    00:00:00 ps
+    
+    .flash - flash a png saying "you got hacked!!! Hahaha!". The image is
+    written into /tmp and then deleted by the code itself. To retrieve the
+    image, I set a breakpoint at the point the image was written but not
+    deleted yet.
+    output of .flash - an image saying "you got hacked!!! Hahaha!"
+   
+\end{verbatim}
+\end{solution}\fi
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=5cm]{tmp_bot_image.png}
+    \caption{Flash image}
+    \label{fig:galaxy}
+\end{figure}
+
+\subsubsection*{There are certain commands that do not show up in the output of
+\texttt{strings}. Why? \ifsolution (1 point) \fi}
+\ifsolution
+
+\begin{solution}
+\begin{verbatim}
+Some commands do not show up as strings as they are stored as character
+arrays. An example for this the .secret command, which is stored as a char
+array.
+\end{verbatim}
+
+\end{solution}\fi
+
+
+\subsubsection*{Some messages are filtered out first by the bot. Why is this necessary? \ifsolution (1 point) \fi}
+
+\ifsolution
+\begin{solution}
+\begin{verbatim}
+The bot accepts some commands which begin with a "bot-%PID." and shows error messages such as "huh" and "these are not the
+commands you are looking for" , if an incorrect command is entered. 
+However, if a wrong command is entered which begins with a "bot-%PID.", the user is not shown anything.
+
+These messages are filtered as the bot doesn't know who is sending
+the messages, it just listens on a socket. Anything which begins with a "."
+, is redirected to the bot and hence, incorrect commands beginning with "."
+are filtered else it can create an incorrect infinite loop.
+\end{verbatim}
+\end{solution}\fi
+
+
+\subsubsection*{How does a bot generate the name it uses in the chatroom? \ifsolution (1 point) \fi}
+\ifsolution
+\begin{solution}
+\begin{verbatim}
+    The name of the bot is from the its PID, concatenated to
+    "bot-%i"%PID. After decompiling with ghidra, can see the method: 
+    
+    local_20 = getpid();
+    snprintf(own_name,0x80,"bot-%i",(ulong)local_20);
+    
+\end{verbatim}
+\end{solution}\fi
+
+\subsubsection*{Which other commands can you find? Describe how you found them,
+how the bot parses them, and their functionality. You can find up to seven total commands.
+\ifsolution (2 points for each command) \fi}
+
+\ifsolution
+\begin{solution}
+\begin{verbatim}
+    Other commands I found: For this I used a combination of checking the
+    decompiled files using ghidra and the strings command for the bot
+    binary.
+    
+    .secret - This command if typed many times, changes the background 
+    colour to a horrible green, pink or cyan. The bot parses this command
+    by reading "secret" as a character array. This doesn't show up in the
+    output of strings as it is a char array.
+    
+    .fight - This commands causes a competition between two running bots.
+    Based on the competition, one bot survives and the other one dies.
+    The bot parses this command by reading two strings with the bot names.
+    More details on the working are in the last answer. 
+    
+    .e4stere66!1 - This one was tricky. I decompiled the binary using 
+    ghidra and saw that the data in "enccmdstr" was XORed with 0x81 using
+    func2(), char by char. Since I couldn't find anything else, I guessed
+    this must be the command. I took the bytes in enccmdstr and wrote the
+    Python script below to decode it.
+    
+    #!/usr/bin/env python3
+
+    numbers = [ 0xe4, 0xb5, 0xf2, 0xf5, 0xe4, 0xf3, 0xe4, 0xb7, 0xb7, 0xa0,
+    0xb0, 0x00 ]
+    
+    dec_numbers = [int(str(item), 0) for item in numbers]
+    print(dec_numbers)
+    
+    xored_cmd = [chr(item^0x81) for item in dec_numbers]
+    print(xored_cmd)
+    print(''.join(xored_cmd))
+    
+    output of the script - e4stere66!1
+
+    output of .e4stere66!1 - Congrats, you found the easteregg. Document
+    how you found it and the command for extra points.
+     
+    
+    
+\end{verbatim}
+\end{solution}\fi
+
+\subsubsection*{The bots can enter into some form of ``conflict''. How do they
+communicate? What is therefore required for two bots to communicate? How do they
+find a winner? \ifsolution (2 points) \fi}
+
+\ifsolution
+\begin{solution}
+\begin{verbatim}
+    
+    There is a command which can cause a "conflict" between the bots, i.e.
+    the ".fight bot-PID1 bot-PID2", which causes both the bots to generate
+    a random number. Each bot send this random number to the other one over
+    a AF_UNIX TCP SOCK_STREAM. This is a protocol which allows interprocess
+    communication on the same local machine. Thus, it is required that
+    the bots are running on the same local machine.
+    
+    The conflict is resolved by each bot locally comparing the received
+    number against its generated number. The larger number is the winner.
+    Each bot then sends its decision to the other bot.
+\end{verbatim}
+\end{solution}\fi
+
+
+
+\subsubsection*{Notes}
+\begin{itemize}
+\item Normally symbols, such as function names would be stripped out. We left
+them in to make this exercise a bit easier.
+\item Pasting into the chatclient might not work correctly. Try to add a space
+after pasting.
+\item When using gdb it can be helpful to use the \verb|layout asm| command.
+\item To understand the advanced features, it helps to know about
+select\footnote{\url{https://en.wikipedia.org/wiki/Select_\%28Unix\%29}}.
+\item Normally only the bot executable would run inside the VM, while the
+chatroom and chatclient would run on different machines. However, for this
+exercise it is fine to run all inside the VM. If you want to run the chatroom
+and chatclient outside the VM, you need to adjust the command line parameters of
+bot and possibly chatclient (see \verb|python3 chatclient.py --help|).
+\item You can find a maximum of seven commands.
+\end{itemize}
+
+
+
+\begin{thebibliography}{---}
+\bibitem[1]{example1} Linux man page for Select, \url{https://man7.org/linux/man-pages/man2/select.2.html}
+\bibitem[2]{example2} ghidra, 
+\url{https://ghidra.re/docs/}
+\bibitem[3]{example3} Linux man page for tcpdump, 
+\url{https://www.tcpdump.org/manpages/tcpdump.1.html}
+\bibitem[3]{example4} Some small doubts on StackOverflow,
+\url{https://stackoverflow.com/}
+\end{thebibliography}
+
+\end{document}
+
