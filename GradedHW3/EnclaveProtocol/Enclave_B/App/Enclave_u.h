@@ -89,7 +89,7 @@ sgx_status_t printSecret(sgx_enclave_id_t eid, sgx_status_t* retval);
 sgx_status_t create_ecc(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_ec256_public_t* public_key);
 sgx_status_t derive_shared_key(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_ec256_public_t* public_key);
 sgx_status_t get_encrypted_message(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* C);
-sgx_status_t fetch_iv(sgx_enclave_id_t eid, uint8_t* _iv);
+sgx_status_t fetch_iv(sgx_enclave_id_t eid, uint8_t* iv);
 sgx_status_t get_decrypted_message(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* C, uint8_t* iv);
 sgx_status_t debug_enclave(sgx_enclave_id_t eid, uint8_t* retval);
 sgx_status_t ecall_type_char(sgx_enclave_id_t eid, char val);

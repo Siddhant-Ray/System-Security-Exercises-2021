@@ -43,7 +43,7 @@ sgx_status_t printSecret(void);
 sgx_status_t create_ecc(sgx_ec256_public_t* public_key);
 sgx_status_t derive_shared_key(sgx_ec256_public_t* public_key);
 sgx_status_t get_encrypted_message(uint8_t* C);
-void fetch_iv(uint8_t* _iv);
+void fetch_iv(uint8_t* iv);
 sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv);
 uint8_t debug_enclave(void);
 void ecall_type_char(char val);

@@ -21,7 +21,7 @@ typedef struct ms_get_encrypted_message_t {
 } ms_get_encrypted_message_t;
 
 typedef struct ms_fetch_iv_t {
-	uint8_t* ms__iv;
+	uint8_t* ms_iv;
 } ms_fetch_iv_t;
 
 typedef struct ms_get_decrypted_message_t {
@@ -336,11 +336,11 @@ sgx_status_t get_encrypted_message(sgx_enclave_id_t eid, sgx_status_t* retval, u
 	return status;
 }
 
-sgx_status_t fetch_iv(sgx_enclave_id_t eid, uint8_t* _iv)
+sgx_status_t fetch_iv(sgx_enclave_id_t eid, uint8_t* iv)
 {
 	sgx_status_t status;
 	ms_fetch_iv_t ms;
-	ms.ms__iv = _iv;
+	ms.ms_iv = iv;
 	status = sgx_ecall(eid, 4, &ocall_table_Enclave, &ms);
 	return status;
 }

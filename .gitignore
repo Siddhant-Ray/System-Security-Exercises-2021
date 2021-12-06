@@ -184,4 +184,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-
+# Enclave vuild files
+*_u.h
+*_u.c
+*_t.h
+*_t.c
+app

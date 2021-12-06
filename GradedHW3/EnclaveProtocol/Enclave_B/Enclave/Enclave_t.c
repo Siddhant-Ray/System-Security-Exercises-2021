@@ -47,7 +47,7 @@ typedef struct ms_get_encrypted_message_t {
 } ms_get_encrypted_message_t;
 
 typedef struct ms_fetch_iv_t {
-	uint8_t* ms__iv;
+	uint8_t* ms_iv;
 } ms_fetch_iv_t;
 
 typedef struct ms_get_decrypted_message_t {
@@ -324,11 +324,11 @@ static sgx_status_t SGX_CDECL sgx_fetch_iv(void* pms)
 	sgx_lfence();
 	ms_fetch_iv_t* ms = SGX_CAST(ms_fetch_iv_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
-	uint8_t* _tmp__iv = ms->ms__iv;
+	uint8_t* _tmp_iv = ms->ms_iv;
 
 
 
-	fetch_iv(_tmp__iv);
+	fetch_iv(_tmp_iv);
 
 
 	return status;

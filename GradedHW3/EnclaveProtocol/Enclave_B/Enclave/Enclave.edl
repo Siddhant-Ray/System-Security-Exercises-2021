@@ -61,8 +61,7 @@ enclave {
       public sgx_status_t create_ecc([out] sgx_ec256_public_t *public_key);
       public sgx_status_t derive_shared_key([user_check] sgx_ec256_public_t * public_key);
       public sgx_status_t get_encrypted_message([user_check] uint8_t* C);
-      public void fetch_iv([user_check] uint8_t* _iv);
-      //public sgx_status_t getMACTag([user_check] sgx_cmac_128bit_tag_t *mac,[user_check] uint8_t* C, [user_check] uint8_t* iv);
+      public void fetch_iv([user_check] uint8_t* iv);
       public sgx_status_t get_decrypted_message([user_check] uint8_t* C, [user_check] uint8_t* iv);
       public uint8_t debug_enclave();
     };

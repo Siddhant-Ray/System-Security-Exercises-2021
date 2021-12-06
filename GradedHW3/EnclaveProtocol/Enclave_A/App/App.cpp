@@ -191,12 +191,12 @@ void encrypt_and_sendC(){
   u_int8_t C;
   u_int8_t IV[16];
   
-  sgx_status_t ris;
+  sgx_status_t sgx_stat;
   fetch_iv(global_eid, IV);
   
   sgx_status_t send_status;
   // Send PSK_A from A in form of C
-  send_status = get_encrypted_message(global_eid, &ris, &C);
+  send_status = get_encrypted_message(global_eid, &sgx_stat, &C);
 
   if (send_status == SGX_SUCCESS)
     printf("Sending PSK_A worked...\n");
@@ -230,10 +230,8 @@ void receive_and_checkC(){
   
   close(fd);
 
-  uint8_t status;
-  sgx_status_t ris;
-
-  sgx_status_t ret_status = get_decrypted_message(global_eid, &ris, &C, IV);
+  sgx_status_t sgx_stat;
+  sgx_status_t ret_status = get_decrypted_message(global_eid, &sgx_stat, &C, IV);
 
   if (ret_status != SGX_SUCCESS) {
     printf("Decrypting the message didn't work...\n");
@@ -241,11 +239,6 @@ void receive_and_checkC(){
   }
   else
     printf("Decrypting message of PSK_B worked...\n");
-
-  // If you want to print the last intex obtained from the messages
-  //uint8_t retrieved_index;
-  //sgx_status = debug_enclave(global_eid, &retrieved_index);
-  //printf("Decrypted cyphertext is %u \n", retrieved_index);
 
 }
 

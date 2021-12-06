@@ -28,13 +28,9 @@ sgx_ecc_state_handle_t ecc_param;
 sgx_ec256_dh_shared_t shared_key_param;
 sgx_aes_ctr_128bit_key_t ctr_key;
 
-//CMAC PARAMS
-sgx_cmac_state_handle_t cmac_param;
-sgx_cmac_128bit_key_t cmac_key;
-
 uint8_t IV[SGX_AESCTR_KEY_SIZE];
 
-//index of the protocol
+//state variable
 uint8_t state = 0;
 
 // plaintext and cipher pointer
@@ -87,7 +83,6 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
   //by taking the first half of the ecc key
   for (int j = 0; j < SGX_AESCTR_KEY_SIZE; j++){
     ctr_key[j] = shared_key_param.s[j];
-    cmac_key[j] = shared_key_param.s[j];
   }
 
   //Initialize IV vector and save it into IV
@@ -108,9 +103,9 @@ sgx_status_t get_encrypted_message(uint8_t* C){
 }
 
 
-void fetch_iv(uint8_t* _iv){
+void fetch_iv(uint8_t* iv){
   for (int j = 0; j <SGX_AESCTR_KEY_SIZE; j++){
-    _iv[j] = IV[j];
+    iv[j] = IV[j];
   }
 }
 
@@ -119,10 +114,10 @@ uint8_t debug_enclave() {
 }
 
 sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
-  uint8_t updated_state;
+  uint8_t *updated_state = (uint8_t*) &updated_state;
   sgx_status_t ret_status;
 
-  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 8, &updated_state);
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 8, updated_state);
   if (ret_status != SGX_SUCCESS)
       return ret_status;
 
