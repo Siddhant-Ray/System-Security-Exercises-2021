@@ -227,7 +227,7 @@ void receive_and_checkC(){
 
   read(fd, &C, sizeof(uint8_t));
   read(fd, IV, 16 * sizeof(uint8_t));
-  
+
   close(fd);
 
   sgx_status_t sgx_stat;

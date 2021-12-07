@@ -77,7 +77,9 @@ sgx_status_t create_ecc(sgx_ec256_public_t *public_key) {
 // 2. END : Generate key pair enclave A
 ***********************************************/
 
-
+/***********************************************
+// 3. BEGIN : Create DH shared secret enclave A
+***********************************************/
 sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 
   sgx_status_t ret_status;
@@ -93,6 +95,9 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
     ctr_key[j] = shared_key_param.s[j];
   }
 
+  // Static all 0 IV of 16 bytes
+  //memset(IV, 0, 16); 
+
   //Initialize IV vector and save it into IV
   ret_status = sgx_read_rand(IV, SGX_AESCTR_KEY_SIZE);
   if (ret_status != SGX_SUCCESS)
@@ -100,6 +105,10 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 
   return SGX_SUCCESS;
 }
+
+/***********************************************
+// 3. END : Create DH shared secret enclave A
+***********************************************/
 
 
 sgx_status_t get_encrypted_message(uint8_t* C){

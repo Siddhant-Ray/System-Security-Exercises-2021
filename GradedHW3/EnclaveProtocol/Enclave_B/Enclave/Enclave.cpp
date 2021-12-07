@@ -77,6 +77,10 @@ sgx_status_t create_ecc(sgx_ec256_public_t *public_key) {
 // 2. END : Generate key pair enclave B
 ***********************************************/
 
+/***********************************************
+// 3. BEGIN : Create DH shared secret enclave B
+***********************************************/
+
 sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 
   sgx_status_t ret_status;
@@ -92,6 +96,9 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
     ctr_key[j] = shared_key_param.s[j];
   }
 
+  // Static all 0 IV of 16 bytes
+  //memset(IV, 0, 16); 
+
   //Initialize IV vector and save it into IV
   ret_status = sgx_read_rand(IV, SGX_AESCTR_KEY_SIZE);
   if (ret_status != SGX_SUCCESS)
@@ -99,6 +106,10 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 
   return SGX_SUCCESS;
 }
+
+/***********************************************
+// 3. END : Create DH shared secret enclave B
+***********************************************/
 
 
 sgx_status_t get_encrypted_message(uint8_t* C){
@@ -131,12 +142,13 @@ sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
   sgx_status_t ret_status;
 
   char PSK_A[] = "I AM ALICE";
+  char PSK_B[] = "I AM BOBOB";
   uint8_t p_len = sizeof(PSK_A);
+  printf("%d\n",p_len);
 
   ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
   // ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, updated_state);
 
-  
   printf("%s\n",(char*)updated_state);
   uint8_t k = 0;
   for(k= 0; k < (sizeof(ctr_key)/ sizeof(ctr_key[0])); k++){
