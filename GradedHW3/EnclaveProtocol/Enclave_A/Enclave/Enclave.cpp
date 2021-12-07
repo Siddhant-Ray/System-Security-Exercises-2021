@@ -104,9 +104,15 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 
 sgx_status_t get_encrypted_message(uint8_t* C){
   sgx_status_t ret_status;
-  uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
+  // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
+  // ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
+  char PSK_A[] = "I AM ALICE";
+  uint8_t *p_src;
+  uint8_t p_len = sizeof(PSK_A);
+  p_src = (uint8_t *)malloc(p_len);
+  memcpy(p_src, PSK_A, p_len);
 
-  ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
+  ret_status = sgx_aes_ctr_encrypt(&ctr_key, p_src, p_len, IV, 1, C);
   return ret_status;
 }
 
@@ -125,7 +131,11 @@ sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
   uint8_t *updated_state = (uint8_t*) &updated_state;
   sgx_status_t ret_status;
 
-  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
+  char PSK_A[] = "I AM ALICE";
+  uint8_t p_len = sizeof(PSK_A);
+  //ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, updated_state);
+
   if (ret_status != SGX_SUCCESS)
       return ret_status;
 

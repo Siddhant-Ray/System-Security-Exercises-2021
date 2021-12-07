@@ -185,8 +185,8 @@ sgx_ec256_public_t receive_public_key(){
 
 
 void encrypt_and_sendC(){
-  u_int8_t C;
-  u_int8_t IV[16];
+  uint8_t C;
+  uint8_t IV[16];
   
   sgx_status_t sgx_stat;
   fetch_iv(global_eid, IV);
@@ -207,8 +207,8 @@ void encrypt_and_sendC(){
   mkfifo(myfifo, 0666);
   fd = open(myfifo, O_WRONLY);
 
-  write(fd, &C, sizeof(u_int8_t));
-  write(fd, IV, 16 * sizeof(u_int8_t));
+  write(fd, &C, sizeof(uint8_t));
+  write(fd, IV, 16 * sizeof(uint8_t));
 
   close(fd);
 }
@@ -219,11 +219,11 @@ void receive_and_checkC(){
   mkfifo(myfifo, 0666);
   fd = open(myfifo, O_RDONLY);
 
-  u_int8_t C;
-  u_int8_t IV[16];
+  uint8_t C;
+  uint8_t IV[16];
 
-  read(fd, &C, sizeof(u_int8_t));
-  read(fd, IV, 16 * sizeof(u_int8_t));
+  read(fd, &C, sizeof(uint8_t));
+  read(fd, IV, 16 * sizeof(uint8_t));
   
   close(fd);
 
