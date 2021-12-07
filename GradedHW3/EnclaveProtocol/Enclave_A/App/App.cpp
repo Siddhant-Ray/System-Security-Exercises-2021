@@ -271,9 +271,9 @@ int SGX_CDECL main(int argc, char *argv[]) {
       print_error_message(sgx_status);
       print_error_message(enclave_status);
     }
-
+    /***********************************************
     // 1. BEGIN : SEND and RECEIVE public key App_A
-
+    ***********************************************/
     //Sending public key from AppA
     send_public_key(public_key);
     printf("Sent public key to AppB \n");
@@ -282,6 +282,10 @@ int SGX_CDECL main(int argc, char *argv[]) {
     sgx_ec256_public_t appA_public_key;
     appA_public_key = receive_public_key();
     printf("Received public key from AppB \n");
+
+    /***********************************************
+    // 2. END : SEND and RECEIVE public key App_A
+    ***********************************************/
 
     //Derive DH shared key and initialize IV on the enclave
     sgx_status = derive_shared_key(global_eid, &enclave_status, &appA_public_key);
@@ -293,11 +297,18 @@ int SGX_CDECL main(int argc, char *argv[]) {
       print_error_message(enclave_status);
     }
 
+    /***********************************************
+    // 1. BEGIN : Encrypted PSK to App_B, from App_A
+    ***********************************************/
     // Send PSK_A to AppB
     encrypt_and_sendC();
 
     // Receive PSK_B from AppB
     receive_and_checkC();
+
+    /***********************************************
+    // 1. END : Encrypted PSK to App_B, from App_A
+    ***********************************************/
 
     /* Utilize edger8r attributes */
     edger8r_array_attributes();

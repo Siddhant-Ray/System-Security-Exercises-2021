@@ -48,6 +48,10 @@ int printf(const char* fmt, ...)
     return (int)strnlen(buf, BUFSIZ - 1) + 1;
 }
 
+/***********************************************
+// 2. BEGIN : Generate key pair enclave A
+***********************************************/
+
 // https://github.com/intel/linux-sgx/blob/master/sdk/tlibcrypto/sgxssl/sgx_ecc256.cpp
 // https://github.com/yuyuany/linux-sgx/blob/master/sdk/tkey_exchange/tkey_exchange.cpp
 // https://stackoverflow.com/questions/42015168/sgx-ecc256-create-key-pair-fail (faced this error)
@@ -68,6 +72,10 @@ sgx_status_t create_ecc(sgx_ec256_public_t *public_key) {
 
   return SGX_SUCCESS;
 }
+
+/***********************************************
+// 2. END : Generate key pair enclave A
+***********************************************/
 
 
 sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
@@ -98,7 +106,7 @@ sgx_status_t get_encrypted_message(uint8_t* C){
   sgx_status_t ret_status;
   uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
 
-  ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 8, C);
+  ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
   return ret_status;
 }
 
@@ -117,7 +125,7 @@ sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
   uint8_t *updated_state = (uint8_t*) &updated_state;
   sgx_status_t ret_status;
 
-  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 8, updated_state);
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
   if (ret_status != SGX_SUCCESS)
       return ret_status;
 

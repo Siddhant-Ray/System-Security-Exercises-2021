@@ -287,12 +287,34 @@ static sgx_status_t SGX_CDECL sgx_derive_shared_key(void* pms)
 	ms_derive_shared_key_t* ms = SGX_CAST(ms_derive_shared_key_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	sgx_ec256_public_t* _tmp_public_key = ms->ms_public_key;
+	size_t _len_public_key = sizeof(sgx_ec256_public_t);
+	sgx_ec256_public_t* _in_public_key = NULL;
 
+	CHECK_UNIQUE_POINTER(_tmp_public_key, _len_public_key);
 
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
 
-	ms->ms_retval = derive_shared_key(_tmp_public_key);
+	if (_tmp_public_key != NULL && _len_public_key != 0) {
+		_in_public_key = (sgx_ec256_public_t*)malloc(_len_public_key);
+		if (_in_public_key == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
+		if (memcpy_s(_in_public_key, _len_public_key, _tmp_public_key, _len_public_key)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
 
+	}
+
+	ms->ms_retval = derive_shared_key(_in_public_key);
+
+err:
+	if (_in_public_key) free(_in_public_key);
 	return status;
 }
 
@@ -306,12 +328,40 @@ static sgx_status_t SGX_CDECL sgx_get_encrypted_message(void* pms)
 	ms_get_encrypted_message_t* ms = SGX_CAST(ms_get_encrypted_message_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	uint8_t* _tmp_C = ms->ms_C;
+	size_t _len_C = 4;
+	uint8_t* _in_C = NULL;
 
+	CHECK_UNIQUE_POINTER(_tmp_C, _len_C);
 
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
 
-	ms->ms_retval = get_encrypted_message(_tmp_C);
+	if (_tmp_C != NULL && _len_C != 0) {
+		if ( _len_C % sizeof(*_tmp_C) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_C = (uint8_t*)malloc(_len_C)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
+		memset((void*)_in_C, 0, _len_C);
+	}
 
+	ms->ms_retval = get_encrypted_message(_in_C);
+	if (_in_C) {
+		if (memcpy_s(_tmp_C, _len_C, _in_C, _len_C)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
+
+err:
+	if (_in_C) free(_in_C);
 	return status;
 }
 
@@ -344,13 +394,62 @@ static sgx_status_t SGX_CDECL sgx_get_decrypted_message(void* pms)
 	ms_get_decrypted_message_t* ms = SGX_CAST(ms_get_decrypted_message_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	uint8_t* _tmp_C = ms->ms_C;
+	size_t _len_C = 4;
+	uint8_t* _in_C = NULL;
 	uint8_t* _tmp_iv = ms->ms_iv;
+	size_t _len_iv = 4;
+	uint8_t* _in_iv = NULL;
 
+	CHECK_UNIQUE_POINTER(_tmp_C, _len_C);
+	CHECK_UNIQUE_POINTER(_tmp_iv, _len_iv);
 
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
 
-	ms->ms_retval = get_decrypted_message(_tmp_C, _tmp_iv);
+	if (_tmp_C != NULL && _len_C != 0) {
+		if ( _len_C % sizeof(*_tmp_C) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_C = (uint8_t*)malloc(_len_C);
+		if (_in_C == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
+		if (memcpy_s(_in_C, _len_C, _tmp_C, _len_C)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
 
+	}
+	if (_tmp_iv != NULL && _len_iv != 0) {
+		if ( _len_iv % sizeof(*_tmp_iv) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_iv = (uint8_t*)malloc(_len_iv);
+		if (_in_iv == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_iv, _len_iv, _tmp_iv, _len_iv)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+
+	ms->ms_retval = get_decrypted_message(_in_C, _in_iv);
+
+err:
+	if (_in_C) free(_in_C);
+	if (_in_iv) free(_in_iv);
 	return status;
 }
 

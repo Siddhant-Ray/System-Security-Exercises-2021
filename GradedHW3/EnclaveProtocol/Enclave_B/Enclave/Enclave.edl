@@ -59,10 +59,10 @@ enclave {
     trusted {
       public sgx_status_t printSecret(void);
       public sgx_status_t create_ecc([out] sgx_ec256_public_t *public_key);
-      public sgx_status_t derive_shared_key([user_check] sgx_ec256_public_t * public_key);
-      public sgx_status_t get_encrypted_message([user_check] uint8_t* C);
+      public sgx_status_t derive_shared_key([in] sgx_ec256_public_t * public_key);
+      public sgx_status_t get_encrypted_message([out, size = 4] uint8_t* C);
       public void fetch_iv([user_check] uint8_t* iv);
-      public sgx_status_t get_decrypted_message([user_check] uint8_t* C, [user_check] uint8_t* iv);
+      public sgx_status_t get_decrypted_message([in, size = 4] uint8_t* C, [in, size = 4] uint8_t* iv);
       public uint8_t debug_enclave();
     };
 
