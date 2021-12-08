@@ -172,7 +172,7 @@ void fetch_iv(uint8_t* iv){
 ***************************************************/
 
 /*************************************************************
-// 6 and 7. BEGIN: Enclave B decrypts, computes and encrypts
+// 6. BEGIN: Enclave B decrypts the challenge
 **************************************************************/
 
 // Decrypt the serialized two numnbers
@@ -188,6 +188,14 @@ sgx_status_t receive_challenge(uint8_t *challenge, uint8_t *iv){
 
 }
 
+/*************************************************************
+// 6. END: Enclave B decrypts the challenge
+**************************************************************/
+
+/*************************************************************
+// 7. BEGIN: Enclave B encrypts the response
+**************************************************************/
+
 // Compute the addition of the two numbers
 sgx_status_t send_response(uint8_t *response){
   sgx_status_t ret_status;
@@ -199,7 +207,7 @@ sgx_status_t send_response(uint8_t *response){
   memcpy(&b, ptr_received_challenge, 1);
 
   int integer_sum = (int)a + (int)b;
-  printf("Adding %d and %d to give %d", a,b, integer_sum);
+  // printf("Adding %d and %d to give %d", a,b, integer_sum); (do not disclose, for debugging only)
 
   uint8_t sum[3] = {0}; // max 3  chars
   uint8_t *ptr_sum = (uint8_t *) &sum;
@@ -211,7 +219,7 @@ sgx_status_t send_response(uint8_t *response){
 }
 
 /*************************************************************
-// 6 and 7. END: Enclave B decrypts, computes and encrypts
+// 7. BEGIN: Enclave B encrypts the response
 **************************************************************/
 
 sgx_status_t printSecret()

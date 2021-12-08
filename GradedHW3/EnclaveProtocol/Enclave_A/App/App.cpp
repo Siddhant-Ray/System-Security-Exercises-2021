@@ -264,6 +264,10 @@ void receive_and_checkC(){
 // 1. END: Send and receive PSK in A
 ***********************************************/
 
+/***********************************************
+// 1. BEGIN: Send challenge to app B
+***********************************************/
+
 void send_challenge(){
     u_int8_t challenge;
     sgx_status_t sgx_stat;
@@ -291,6 +295,14 @@ void send_challenge(){
     print_error_message(send_status);  
     }
 }
+
+/***********************************************
+// 1. END: Send challenge to app B
+***********************************************/
+
+/***********************************************
+// 1. BEGIN: Check response from app B
+***********************************************/
 
 void verify_response(){
     
@@ -320,6 +332,10 @@ void verify_response(){
     printf("Decrypting the response didn't work...\n");
 
 }
+
+/***********************************************
+// 1. END: Check response from app B
+***********************************************/
 
 
 /* Application entry */
@@ -353,6 +369,7 @@ int SGX_CDECL main(int argc, char *argv[]) {
     /***********************************************
     // 1. BEGIN: SEND and RECEIVE public key App_A
     ***********************************************/
+
     //Sending public key from AppA
     send_public_key(public_key);
     printf("Sent public key to AppB \n");
@@ -379,6 +396,7 @@ int SGX_CDECL main(int argc, char *argv[]) {
     /***********************************************
     // 1. BEGIN: Encrypted PSK to App_B, from App_A
     ***********************************************/
+
     // Send PSK_A to AppB
     encrypt_and_sendC();
 
@@ -389,8 +407,25 @@ int SGX_CDECL main(int argc, char *argv[]) {
     // 1. END: Encrypted PSK to App_B, from App_A
     ***********************************************/
 
+    /***********************************************
+    // 1. BEGIN: Send challenge to app B
+    ***********************************************/
+
     send_challenge();
+
+    /***********************************************
+    // 1. END: Send challenge to app B
+    ***********************************************/
+
+    /***********************************************
+    // 1. BEGIN: Check response from app B
+    ***********************************************/
+
     verify_response();
+
+    /***********************************************
+    // 1. END: Check response from app B
+    ***********************************************/
 
     /* Utilize edger8r attributes */
     edger8r_array_attributes();

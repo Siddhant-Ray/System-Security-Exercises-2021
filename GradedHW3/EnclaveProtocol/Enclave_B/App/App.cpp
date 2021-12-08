@@ -262,6 +262,10 @@ void receive_and_checkC(){
 // 1. END: Send and receive PSK in B
 ***********************************************/
 
+/***********************************************
+// 1. BEGIN: Receive challenge from app A
+***********************************************/
+
 void receive_challenge(){
     u_int8_t challenge;
     sgx_status_t sgx_stat;
@@ -288,6 +292,14 @@ void receive_challenge(){
     print_error_message(recv_status);  
     }
 }
+
+/***********************************************
+// 1. END: Receive challenge from app A
+***********************************************/
+
+/***********************************************
+// 1. BEGIN: Send response to app A
+***********************************************/
 
 void send_response(){
 
@@ -321,6 +333,9 @@ void send_response(){
 
 }
 
+/***********************************************
+// 1. END: Send response to app A
+***********************************************/
 
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[]) {
@@ -350,9 +365,11 @@ int SGX_CDECL main(int argc, char *argv[]) {
       print_error_message(sgx_status);
       print_error_message(enclave_status);
     }
+
     /***********************************************
     // 1. BEGIN: SEND and RECEIVE public key App_A
     ***********************************************/
+
     //Receiving public key from App1
     sgx_ec256_public_t appB_public_key;
     appB_public_key = receive_public_key();
@@ -361,6 +378,7 @@ int SGX_CDECL main(int argc, char *argv[]) {
     //Sending public key from App1
     send_public_key(public_key);
     printf("Sent public key to AppA...\n");
+
     /***********************************************
     // 1. END: SEND and RECEIVE public key App_A
     ***********************************************/
@@ -378,18 +396,37 @@ int SGX_CDECL main(int argc, char *argv[]) {
     /***********************************************
     // 1. BEGIN: Encrypted PSK to App_A, from App_B
     ***********************************************/
+
     // Receive PSK_A from AppA
     receive_and_checkC();
     
     // Send PSK_B to AppA
     encrypt_and_sendC();
+
     /***********************************************
     // 1. END: Encrypted PSK to App_A, from App_B
     ***********************************************/
 
+    /***********************************************
+    // 1. BEGIN: Receive challenge from A
+    ***********************************************/
+
     receive_challenge();
 
+    /***********************************************
+    // 1. END: Receive challenge from A
+    ***********************************************/
+
+    /***********************************************
+    // 1. BEGIN: Send response to app A
+    ***********************************************/
+
     send_response();
+
+    /***********************************************
+    // 1. END: Send response to app A
+    ***********************************************/
+
 
 
     /* Utilize edger8r attributes */
