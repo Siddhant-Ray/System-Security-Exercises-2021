@@ -196,7 +196,7 @@ void encrypt_and_sendC(){
   
   sgx_status_t send_status;
   // Send PSK_A from A in form of C
-  send_status = get_encrypted_message(global_eid, &sgx_stat, &C);
+  send_status = get_encrypted_message_psk(global_eid, &sgx_stat, &C);
 
   if (send_status == SGX_SUCCESS)
     printf("Sending PSK_A worked...\n");
@@ -204,13 +204,20 @@ void encrypt_and_sendC(){
     printf("Sending PSK_A failed...\n");
     print_error_message(send_status);
   }
+
+  /*uint8_t k = 0;
+  for(k= 0; k < (sizeof(IV)/ sizeof(IV[0])); k++){
+    // printf("%d", ctr_key[k]);
+    // printf("\n");
+    printf("%d", IV[k]);
+  }*/
   
   int fd;
   const char *myfifo = "/tmp/myfifo_pska";
   mkfifo(myfifo, 0666);
   fd = open(myfifo, O_WRONLY);
 
-  write(fd, &C, sizeof(uint8_t));
+  write(fd, &C, 11 * sizeof(uint8_t));
   write(fd, IV, 16 * sizeof(uint8_t));
 
   close(fd);
@@ -225,13 +232,13 @@ void receive_and_checkC(){
   uint8_t C;
   uint8_t IV[16];
 
-  read(fd, &C, sizeof(uint8_t));
+  read(fd, &C, 11 * sizeof(uint8_t));
   read(fd, IV, 16 * sizeof(uint8_t));
 
   close(fd);
 
   sgx_status_t sgx_stat;
-  sgx_status_t ret_status = get_decrypted_message(global_eid, &sgx_stat, &C, IV);
+  sgx_status_t ret_status = get_decrypted_message_psk(global_eid, &sgx_stat, &C, IV);
 
   if (ret_status != SGX_SUCCESS) {
     printf("Decrypting the message didn't work...\n");

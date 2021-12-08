@@ -15,24 +15,27 @@ typedef struct ms_derive_shared_key_t {
 	sgx_ec256_public_t* ms_public_key;
 } ms_derive_shared_key_t;
 
-typedef struct ms_get_encrypted_message_t {
+typedef struct ms_get_encrypted_message_psk_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_C;
-} ms_get_encrypted_message_t;
+} ms_get_encrypted_message_psk_t;
 
 typedef struct ms_fetch_iv_t {
 	uint8_t* ms_iv;
 } ms_fetch_iv_t;
 
-typedef struct ms_get_decrypted_message_t {
+typedef struct ms_get_decrypted_message_psk_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_C;
 	uint8_t* ms_iv;
-} ms_get_decrypted_message_t;
+} ms_get_decrypted_message_psk_t;
 
-typedef struct ms_debug_enclave_t {
-	uint8_t ms_retval;
-} ms_debug_enclave_t;
+typedef struct ms_send_response_t {
+	sgx_status_t ms_retval;
+	uint8_t* ms_challenge;
+	uint8_t* ms_response;
+	uint8_t* ms_iv;
+} ms_send_response_t;
 
 typedef struct ms_ecall_type_char_t {
 	char ms_val;
@@ -326,10 +329,10 @@ sgx_status_t derive_shared_key(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_e
 	return status;
 }
 
-sgx_status_t get_encrypted_message(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* C)
+sgx_status_t get_encrypted_message_psk(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* C)
 {
 	sgx_status_t status;
-	ms_get_encrypted_message_t ms;
+	ms_get_encrypted_message_psk_t ms;
 	ms.ms_C = C;
 	status = sgx_ecall(eid, 3, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
@@ -345,10 +348,10 @@ sgx_status_t fetch_iv(sgx_enclave_id_t eid, uint8_t* iv)
 	return status;
 }
 
-sgx_status_t get_decrypted_message(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* C, uint8_t* iv)
+sgx_status_t get_decrypted_message_psk(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* C, uint8_t* iv)
 {
 	sgx_status_t status;
-	ms_get_decrypted_message_t ms;
+	ms_get_decrypted_message_psk_t ms;
 	ms.ms_C = C;
 	ms.ms_iv = iv;
 	status = sgx_ecall(eid, 5, &ocall_table_Enclave, &ms);
@@ -356,10 +359,13 @@ sgx_status_t get_decrypted_message(sgx_enclave_id_t eid, sgx_status_t* retval, u
 	return status;
 }
 
-sgx_status_t debug_enclave(sgx_enclave_id_t eid, uint8_t* retval)
+sgx_status_t send_response(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* challenge, uint8_t* response, uint8_t* iv)
 {
 	sgx_status_t status;
-	ms_debug_enclave_t ms;
+	ms_send_response_t ms;
+	ms.ms_challenge = challenge;
+	ms.ms_response = response;
+	ms.ms_iv = iv;
 	status = sgx_ecall(eid, 6, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;

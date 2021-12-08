@@ -42,10 +42,11 @@ typedef union union_foo_t {
 sgx_status_t printSecret(void);
 sgx_status_t create_ecc(sgx_ec256_public_t* public_key);
 sgx_status_t derive_shared_key(sgx_ec256_public_t* public_key);
-sgx_status_t get_encrypted_message(uint8_t* C);
+sgx_status_t get_encrypted_message_psk(uint8_t* C);
 void fetch_iv(uint8_t* iv);
-sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv);
-uint8_t debug_enclave(void);
+sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv);
+sgx_status_t get_challenge(uint8_t* challenge);
+sgx_status_t check_response(uint8_t* response, uint8_t* iv);
 void ecall_type_char(char val);
 void ecall_type_int(int val);
 void ecall_type_float(float val);

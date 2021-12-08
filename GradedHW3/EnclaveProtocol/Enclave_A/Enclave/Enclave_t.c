@@ -41,24 +41,31 @@ typedef struct ms_derive_shared_key_t {
 	sgx_ec256_public_t* ms_public_key;
 } ms_derive_shared_key_t;
 
-typedef struct ms_get_encrypted_message_t {
+typedef struct ms_get_encrypted_message_psk_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_C;
-} ms_get_encrypted_message_t;
+} ms_get_encrypted_message_psk_t;
 
 typedef struct ms_fetch_iv_t {
 	uint8_t* ms_iv;
 } ms_fetch_iv_t;
 
-typedef struct ms_get_decrypted_message_t {
+typedef struct ms_get_decrypted_message_psk_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_C;
 	uint8_t* ms_iv;
-} ms_get_decrypted_message_t;
+} ms_get_decrypted_message_psk_t;
 
-typedef struct ms_debug_enclave_t {
-	uint8_t ms_retval;
-} ms_debug_enclave_t;
+typedef struct ms_get_challenge_t {
+	sgx_status_t ms_retval;
+	uint8_t* ms_challenge;
+} ms_get_challenge_t;
+
+typedef struct ms_check_response_t {
+	sgx_status_t ms_retval;
+	uint8_t* ms_response;
+	uint8_t* ms_iv;
+} ms_check_response_t;
 
 typedef struct ms_ecall_type_char_t {
 	char ms_val;
@@ -318,17 +325,17 @@ err:
 	return status;
 }
 
-static sgx_status_t SGX_CDECL sgx_get_encrypted_message(void* pms)
+static sgx_status_t SGX_CDECL sgx_get_encrypted_message_psk(void* pms)
 {
-	CHECK_REF_POINTER(pms, sizeof(ms_get_encrypted_message_t));
+	CHECK_REF_POINTER(pms, sizeof(ms_get_encrypted_message_psk_t));
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
-	ms_get_encrypted_message_t* ms = SGX_CAST(ms_get_encrypted_message_t*, pms);
+	ms_get_encrypted_message_psk_t* ms = SGX_CAST(ms_get_encrypted_message_psk_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	uint8_t* _tmp_C = ms->ms_C;
-	size_t _len_C = 4;
+	size_t _len_C = 11;
 	uint8_t* _in_C = NULL;
 
 	CHECK_UNIQUE_POINTER(_tmp_C, _len_C);
@@ -352,7 +359,7 @@ static sgx_status_t SGX_CDECL sgx_get_encrypted_message(void* pms)
 		memset((void*)_in_C, 0, _len_C);
 	}
 
-	ms->ms_retval = get_encrypted_message(_in_C);
+	ms->ms_retval = get_encrypted_message_psk(_in_C);
 	if (_in_C) {
 		if (memcpy_s(_tmp_C, _len_C, _in_C, _len_C)) {
 			status = SGX_ERROR_UNEXPECTED;
@@ -384,20 +391,20 @@ static sgx_status_t SGX_CDECL sgx_fetch_iv(void* pms)
 	return status;
 }
 
-static sgx_status_t SGX_CDECL sgx_get_decrypted_message(void* pms)
+static sgx_status_t SGX_CDECL sgx_get_decrypted_message_psk(void* pms)
 {
-	CHECK_REF_POINTER(pms, sizeof(ms_get_decrypted_message_t));
+	CHECK_REF_POINTER(pms, sizeof(ms_get_decrypted_message_psk_t));
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
-	ms_get_decrypted_message_t* ms = SGX_CAST(ms_get_decrypted_message_t*, pms);
+	ms_get_decrypted_message_psk_t* ms = SGX_CAST(ms_get_decrypted_message_psk_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	uint8_t* _tmp_C = ms->ms_C;
-	size_t _len_C = 4;
+	size_t _len_C = 11;
 	uint8_t* _in_C = NULL;
 	uint8_t* _tmp_iv = ms->ms_iv;
-	size_t _len_iv = 4;
+	size_t _len_iv = 16;
 	uint8_t* _in_iv = NULL;
 
 	CHECK_UNIQUE_POINTER(_tmp_C, _len_C);
@@ -445,7 +452,7 @@ static sgx_status_t SGX_CDECL sgx_get_decrypted_message(void* pms)
 
 	}
 
-	ms->ms_retval = get_decrypted_message(_in_C, _in_iv);
+	ms->ms_retval = get_decrypted_message_psk(_in_C, _in_iv);
 
 err:
 	if (_in_C) free(_in_C);
@@ -453,21 +460,119 @@ err:
 	return status;
 }
 
-static sgx_status_t SGX_CDECL sgx_debug_enclave(void* pms)
+static sgx_status_t SGX_CDECL sgx_get_challenge(void* pms)
 {
-	CHECK_REF_POINTER(pms, sizeof(ms_debug_enclave_t));
+	CHECK_REF_POINTER(pms, sizeof(ms_get_challenge_t));
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
-	ms_debug_enclave_t* ms = SGX_CAST(ms_debug_enclave_t*, pms);
+	ms_get_challenge_t* ms = SGX_CAST(ms_get_challenge_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
+	uint8_t* _tmp_challenge = ms->ms_challenge;
+	size_t _len_challenge = 4;
+	uint8_t* _in_challenge = NULL;
 
+	CHECK_UNIQUE_POINTER(_tmp_challenge, _len_challenge);
 
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
 
-	ms->ms_retval = debug_enclave();
+	if (_tmp_challenge != NULL && _len_challenge != 0) {
+		if ( _len_challenge % sizeof(*_tmp_challenge) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_challenge = (uint8_t*)malloc(_len_challenge)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
+		memset((void*)_in_challenge, 0, _len_challenge);
+	}
 
+	ms->ms_retval = get_challenge(_in_challenge);
+	if (_in_challenge) {
+		if (memcpy_s(_tmp_challenge, _len_challenge, _in_challenge, _len_challenge)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
+
+err:
+	if (_in_challenge) free(_in_challenge);
+	return status;
+}
+
+static sgx_status_t SGX_CDECL sgx_check_response(void* pms)
+{
+	CHECK_REF_POINTER(pms, sizeof(ms_check_response_t));
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+	ms_check_response_t* ms = SGX_CAST(ms_check_response_t*, pms);
+	sgx_status_t status = SGX_SUCCESS;
+	uint8_t* _tmp_response = ms->ms_response;
+	size_t _len_response = 4;
+	uint8_t* _in_response = NULL;
+	uint8_t* _tmp_iv = ms->ms_iv;
+	size_t _len_iv = 16;
+	uint8_t* _in_iv = NULL;
+
+	CHECK_UNIQUE_POINTER(_tmp_response, _len_response);
+	CHECK_UNIQUE_POINTER(_tmp_iv, _len_iv);
+
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+
+	if (_tmp_response != NULL && _len_response != 0) {
+		if ( _len_response % sizeof(*_tmp_response) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_response = (uint8_t*)malloc(_len_response);
+		if (_in_response == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_response, _len_response, _tmp_response, _len_response)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_iv != NULL && _len_iv != 0) {
+		if ( _len_iv % sizeof(*_tmp_iv) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_iv = (uint8_t*)malloc(_len_iv);
+		if (_in_iv == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_iv, _len_iv, _tmp_iv, _len_iv)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+
+	ms->ms_retval = check_response(_in_response, _in_iv);
+
+err:
+	if (_in_response) free(_in_response);
+	if (_in_iv) free(_in_iv);
 	return status;
 }
 
@@ -1354,17 +1459,18 @@ static sgx_status_t SGX_CDECL sgx_ecall_consumer(void* pms)
 
 SGX_EXTERNC const struct {
 	size_t nr_ecall;
-	struct {void* ecall_addr; uint8_t is_priv; uint8_t is_switchless;} ecall_table[39];
+	struct {void* ecall_addr; uint8_t is_priv; uint8_t is_switchless;} ecall_table[40];
 } g_ecall_table = {
-	39,
+	40,
 	{
 		{(void*)(uintptr_t)sgx_printSecret, 0, 0},
 		{(void*)(uintptr_t)sgx_create_ecc, 0, 0},
 		{(void*)(uintptr_t)sgx_derive_shared_key, 0, 0},
-		{(void*)(uintptr_t)sgx_get_encrypted_message, 0, 0},
+		{(void*)(uintptr_t)sgx_get_encrypted_message_psk, 0, 0},
 		{(void*)(uintptr_t)sgx_fetch_iv, 0, 0},
-		{(void*)(uintptr_t)sgx_get_decrypted_message, 0, 0},
-		{(void*)(uintptr_t)sgx_debug_enclave, 0, 0},
+		{(void*)(uintptr_t)sgx_get_decrypted_message_psk, 0, 0},
+		{(void*)(uintptr_t)sgx_get_challenge, 0, 0},
+		{(void*)(uintptr_t)sgx_check_response, 0, 0},
 		{(void*)(uintptr_t)sgx_ecall_type_char, 0, 0},
 		{(void*)(uintptr_t)sgx_ecall_type_int, 0, 0},
 		{(void*)(uintptr_t)sgx_ecall_type_float, 0, 0},
@@ -1402,21 +1508,21 @@ SGX_EXTERNC const struct {
 
 SGX_EXTERNC const struct {
 	size_t nr_ocall;
-	uint8_t entry_table[11][39];
+	uint8_t entry_table[11][40];
 } g_dyn_entry_table = {
 	11,
 	{
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
 	}
 };
 

@@ -9,11 +9,6 @@
 
 #define SGX_ECP256_KEY_SIZE   32
 #define SGX_AESCTR_KEY_SIZE   16
-#define SGX_CMAC_KEY_SIZE     16
-
-#define SEND  0
-#define SEND_AND_CLOSE  1
-#define CLOSE 2
 
 int enclave_secret = 42;
 
@@ -32,10 +27,6 @@ uint8_t IV[SGX_AESCTR_KEY_SIZE];
 
 //state variable
 uint8_t state = 0;
-
-// plaintext and cipher pointer
-uint8_t plaintext[64];
-uint8_t ciphertext[64];
 
 int printf(const char* fmt, ...)
 {
@@ -112,15 +103,17 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 ***********************************************/
 
 
-sgx_status_t get_encrypted_message(uint8_t* C){
+sgx_status_t get_encrypted_message_psk(uint8_t* C){
   sgx_status_t ret_status;
   // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
   // ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
-  char PSK_A[] = "I AM ALICE";
+
+  // size of PSK is 11 bytes (hardcoded this in the .edl and named pipe)
+  char PSK_B[] = "I AM BOBOB";
   uint8_t *p_src;
-  uint8_t p_len = sizeof(PSK_A);
+  uint32_t p_len = sizeof(PSK_B);
   p_src = (uint8_t *)malloc(p_len);
-  memcpy(p_src, PSK_A, p_len);
+  memcpy(p_src, PSK_B, p_len);
 
   ret_status = sgx_aes_ctr_encrypt(&ctr_key, p_src, p_len, IV, 1, C);
   return ret_status;
@@ -133,23 +126,19 @@ void fetch_iv(uint8_t* iv){
   }
 }
 
-uint8_t debug_enclave() {
-  return state;
-}
 
-sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
+sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
   uint8_t *updated_state = (uint8_t*) &updated_state;
   sgx_status_t ret_status;
 
   char PSK_A[] = "I AM ALICE";
-  char PSK_B[] = "I AM BOBOB";
-  uint8_t p_len = sizeof(PSK_A);
-  printf("%d\n",p_len);
+  uint32_t p_len = sizeof(PSK_A);
+  // printf("%d\n",p_len);
 
   ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
   // ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, updated_state);
 
-  printf("%s\n",(char*)updated_state);
+  /*printf("%s\n",(char*)updated_state);
   uint8_t k = 0;
   for(k= 0; k < (sizeof(ctr_key)/ sizeof(ctr_key[0])); k++){
     // printf("%d", ctr_key[k]);
@@ -158,7 +147,7 @@ sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
   }
 
   printf("%s\n", PSK_A);
-  printf("%i\n",strcmp((char *)updated_state, (char *)(PSK_A))); 
+  printf("%i\n",strcmp((char *)updated_state, (char *)(PSK_A))); */
 
   if(ret_status != SGX_SUCCESS)
     return ret_status;
@@ -166,8 +155,36 @@ sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
   if (strcmp((char *)updated_state, (char *)(PSK_A)) != 0){
     return SGX_ERROR_INVALID_PARAMETER;}
   
-  return SGX_SUCCESS;
+  return ret_status;
 }
+// Send the addition of the two numbers
+sgx_status_t send_response(uint8_t *challenge, uint8_t *response, uint8_t *iv){
+  sgx_status_t ret_status;
+
+  uint8_t received_challenge[3];
+  uint8_t *ptr_received_challenge = (uint8_t *) &received_challenge;
+
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, challenge, 3, iv, 1, ptr_received_challenge);
+
+  uint8_t a;
+  uint8_t b;
+
+  memcpy(&a, ptr_received_challenge, 1);
+  ptr_received_challenge++;
+  memcpy(&b, ptr_received_challenge, 1);
+
+  int integer_sum = (int)a + (int)b;
+  printf("Adding %d and %d to give %d", a,b, integer_sum);
+
+  uint8_t sum[3] = {0}; // max 3  chars
+  uint8_t *ptr_sum = (uint8_t *) &sum;
+  snprintf((char*)ptr_sum, 2, "%d", integer_sum);
+  
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, ptr_sum, 4, iv, 1, response);
+  return ret_status;
+}
+
+
 
 sgx_status_t printSecret()
 {

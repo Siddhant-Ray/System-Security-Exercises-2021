@@ -9,11 +9,6 @@
 
 #define SGX_ECP256_KEY_SIZE   32
 #define SGX_AESCTR_KEY_SIZE   16
-#define SGX_CMAC_KEY_SIZE     16
-
-#define SEND  0
-#define SEND_AND_CLOSE  1
-#define CLOSE 2
 
 int enclave_secret = 1337;
 
@@ -33,9 +28,10 @@ uint8_t IV[SGX_AESCTR_KEY_SIZE];
 //state variable
 uint8_t state = 0;
 
-// plaintext and cipher pointer
-uint8_t plaintext[64];
-uint8_t ciphertext[64];
+// Challenge numbers
+uint8_t a;
+uint8_t b;
+
 
 int printf(const char* fmt, ...)
 {
@@ -111,13 +107,15 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 ***********************************************/
 
 
-sgx_status_t get_encrypted_message(uint8_t* C){
+sgx_status_t get_encrypted_message_psk(uint8_t* C){
   sgx_status_t ret_status;
   // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
   // ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
+
+  // size of PSK is 11 bytes (hardcoded this in the .edl and named pipe)
   char PSK_A[] = "I AM ALICE";
   uint8_t *p_src;
-  uint8_t p_len = sizeof(PSK_A);
+  uint32_t p_len = sizeof(PSK_A);
   p_src = (uint8_t *)malloc(p_len);
   memcpy(p_src, PSK_A, p_len);
 
@@ -132,23 +130,61 @@ void fetch_iv(uint8_t* iv){
   }
 }
 
-uint8_t debug_enclave() {
-  return state;
-}
-
-sgx_status_t get_decrypted_message(uint8_t* C, uint8_t* iv){
+sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
   uint8_t *updated_state = (uint8_t*) &updated_state;
   sgx_status_t ret_status;
 
   char PSK_A[] = "I AM ALICE";
-  uint8_t p_len = sizeof(PSK_A);
+  uint32_t p_len = sizeof(PSK_A);
   //ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
   ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, updated_state);
 
   if (ret_status != SGX_SUCCESS)
       return ret_status;
 
-  return SGX_SUCCESS;
+  return ret_status;
+}
+
+// create the challenge in Enclave A
+sgx_status_t get_challenge(uint8_t *challenge){
+  sgx_status_t ret_status;
+
+  sgx_read_rand(&a, 1);
+  sgx_read_rand(&b, 1);
+
+  uint8_t ab[3];
+  uint8_t *ptr_ab = (uint8_t*) &ab;
+
+  // Serialize as consecutive for writing a and b
+  // to the shared file
+  memcpy(ptr_ab, &a, 1);
+  ptr_ab++;
+  memcpy(ptr_ab, &b, 1);
+
+  ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const unsigned char*) &ab, 3, IV, 1, challenge);
+  return ret_status;
+}
+
+// Check received from Enclave B
+sgx_status_t check_response(uint8_t *response, uint8_t* iv){
+  sgx_status_t ret_status;
+
+  uint8_t response_recvd[3];
+  uint8_t *ptr_response_recvd = (uint8_t *) &response_recvd;
+
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, response, 16, iv, 1, ptr_response_recvd);
+
+  int actual_value = static_cast<int>(a) + static_cast<int>(b);
+  int int_response = atoi((char *) ptr_response_recvd);
+
+  if (actual_value != int_response){
+    printf("Response didn't match expected value...\n");
+    ret_status = SGX_ERROR_INVALID_PARAMETER;
+    return ret_status;
+  }
+  
+  return ret_status;
+
 }
 
 sgx_status_t printSecret()
