@@ -63,7 +63,8 @@ enclave {
       public sgx_status_t get_encrypted_message_psk([out, size = 11] uint8_t* C);
       public void fetch_iv([user_check] uint8_t* iv);
       public sgx_status_t get_decrypted_message_psk([in, size = 11] uint8_t* C, [in, size = 16] uint8_t* iv);
-      public sgx_status_t send_response([in, size = 4] uint8_t *challenge, [out, size = 4] uint8_t *response, [in, size = 16] uint8_t *iv);
+      public sgx_status_t receive_challenge([in, size = 4] uint8_t *challenge, [in, size = 16] uint8_t *iv);
+      public sgx_status_t send_response([out, size = 4] uint8_t *response);
     };
 
     untrusted {

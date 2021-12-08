@@ -25,8 +25,13 @@ sgx_aes_ctr_128bit_key_t ctr_key;
 
 uint8_t IV[SGX_AESCTR_KEY_SIZE];
 
-//state variable
+// state variable
 uint8_t state = 0;
+
+// Received challenge
+uint8_t received_challenge[3];
+uint8_t *ptr_received_challenge = (uint8_t *) &received_challenge;
+
 
 int printf(const char* fmt, ...)
 {
@@ -171,14 +176,15 @@ void fetch_iv(uint8_t* iv){
 **************************************************************/
 
 // Send the addition of the two numbers
-sgx_status_t send_response(uint8_t *challenge, uint8_t *response, uint8_t *iv){
+sgx_status_t receive_challenge(uint8_t *challenge, uint8_t *iv){
   sgx_status_t ret_status;
 
-  uint8_t received_challenge[3];
-  uint8_t *ptr_received_challenge = (uint8_t *) &received_challenge;
-
+  
   ret_status = sgx_aes_ctr_decrypt(&ctr_key, challenge, 3, iv, 1, ptr_received_challenge);
+}
 
+sgx_status_t send_response(uint8_t *response){
+  sgx_status_t ret_status;
   uint8_t a;
   uint8_t b;
 
@@ -193,7 +199,8 @@ sgx_status_t send_response(uint8_t *challenge, uint8_t *response, uint8_t *iv){
   uint8_t *ptr_sum = (uint8_t *) &sum;
   snprintf((char*)ptr_sum, 2, "%d", integer_sum);
   
-  ret_status = sgx_aes_ctr_decrypt(&ctr_key, ptr_sum, 4, iv, 1, response);
+  // IV is the IV of the self enclave B
+  ret_status = sgx_aes_ctr_encrypt(&ctr_key, ptr_sum, 4, IV, 1, response);
   return ret_status;
 }
 

@@ -165,7 +165,7 @@ void ocall_print_string(const char *str)
 
 void send_public_key(sgx_ec256_public_t public_key){
   int fd;
-  const char *myfifo = "/tmp/myfifo";
+  const char *myfifo = "/tmp/myfifo_a";
   mkfifo(myfifo, 0666);
   fd = open(myfifo, O_WRONLY);
 
@@ -177,7 +177,7 @@ void send_public_key(sgx_ec256_public_t public_key){
 
 sgx_ec256_public_t receive_public_key(){
   int fd;
-  const char *myfifo = "/tmp/myfifo";
+  const char *myfifo = "/tmp/myfifo_b";
   mkfifo(myfifo, 0666);
   fd = open(myfifo,O_RDONLY);
 
@@ -261,8 +261,46 @@ void receive_and_checkC(){
 }
 
 /***********************************************
-// 1. END: Send and receive public keys in A
+// 1. END: Send and receive PSK in A
 ***********************************************/
+
+void send_challenge(){
+    u_int8_t challenge;
+    sgx_status_t sgx_stat;
+    sgx_status_t send_status;
+    
+    uint8_t IV[16];
+    fetch_iv(global_eid, IV);
+
+    send_status = get_challenge(global_eid, &sgx_stat, &challenge);
+
+    int fd;
+    const char *myfifo = "/tmp/myfifo_challengea";
+    mkfifo(myfifo, 0666);
+    fd = open(myfifo, O_WRONLY);
+
+    write(fd, &challenge, 3 * sizeof(uint8_t));
+    write(fd, IV, 16 * sizeof(uint8_t));
+
+    close(fd);
+
+    if (send_status == SGX_SUCCESS)
+    printf("Sending challenge with rand worked...\n");
+    else{
+    printf("Sending challenge with rand failed...\n");
+    print_error_message(send_status);  
+    }
+}
+
+void verify_response(){
+    u_int8_t response;
+    sgx_status_t sgx_stat;
+    sgx_status_t ret_status;
+
+    // Need the IV of App B to decrypt
+    // for encrypt, only need self IV
+
+}
 
 
 /* Application entry */
@@ -331,6 +369,8 @@ int SGX_CDECL main(int argc, char *argv[]) {
     /***********************************************
     // 1. END: Encrypted PSK to App_B, from App_A
     ***********************************************/
+
+    // send_challenge();
 
     /* Utilize edger8r attributes */
     edger8r_array_attributes();

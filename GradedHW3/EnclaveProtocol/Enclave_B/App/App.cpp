@@ -162,7 +162,7 @@ void ocall_print_string(const char *str)
 
 void send_public_key(sgx_ec256_public_t public_key){
   int fd;
-  const char *myfifo = "/tmp/myfifo";
+  const char *myfifo = "/tmp/myfifo_b";
   mkfifo(myfifo, 0666);
   fd = open(myfifo, O_WRONLY);
 
@@ -174,7 +174,7 @@ void send_public_key(sgx_ec256_public_t public_key){
 
 sgx_ec256_public_t receive_public_key(){
   int fd;
-  const char *myfifo = "/tmp/myfifo";
+  const char *myfifo = "/tmp/myfifo_a";
   mkfifo(myfifo, 0666);
   fd = open(myfifo,O_RDONLY);
 
@@ -261,6 +261,35 @@ void receive_and_checkC(){
 /***********************************************
 // 1. END: Send and receive PSK in B
 ***********************************************/
+
+/*void receive_challenge_and_send_response(){
+    u_int8_t challenge;
+    uint8_t response;
+    sgx_status_t sgx_stat;
+    sgx_status_t recv_status;
+    sgx_status_t send_status;
+    
+    uint8_t cross_IV[16];
+    uint8_t self_IV[16];
+    fetch_iv(global_eid, self_IV);
+    
+    int fd;
+    const char *myfifo = "/tmp/myfifo_challengea";
+    mkfifo(myfifo, 0666);
+    fd = open(myfifo, O_RDONLY);
+
+    read(fd, &challenge, 3 * sizeof(uint8_t));
+    read(fd, cross_IV, 16 * sizeof(uint8_t));
+
+    close(fd);
+
+    if (recv_status == SGX_SUCCESS)
+    printf("Receiving challenge with rand worked...\n");
+    else{
+    printf("Receiving challenge with rand failed...\n");
+    print_error_message(send_status);  
+    }
+}*/
 
 
 /* Application entry */
