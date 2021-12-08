@@ -15,10 +15,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-# define SGX_ECP256_KEY_SIZE             32
-#define SEND  0
-#define SEND_AND_CLOSE  1
-#define CLOSE 2
+#define SGX_ECP256_KEY_SIZE  32
 
 
 /* Global EID shared by multiple threads */
