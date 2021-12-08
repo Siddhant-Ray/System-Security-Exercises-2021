@@ -40,7 +40,7 @@ int printf(const char* fmt, ...)
 }
 
 /***********************************************
-// 2. BEGIN : Generate key pair enclave B
+// 2. BEGIN: Generate key pair enclave B
 ***********************************************/
 
 // https://github.com/intel/linux-sgx/blob/master/sdk/tlibcrypto/sgxssl/sgx_ecc256.cpp
@@ -65,11 +65,11 @@ sgx_status_t create_ecc(sgx_ec256_public_t *public_key) {
 }
 
 /***********************************************
-// 2. END : Generate key pair enclave B
+// 2. END: Generate key pair enclave B
 ***********************************************/
 
 /***********************************************
-// 3. BEGIN : Create DH shared secret enclave B
+// 3. BEGIN: Create DH shared secret enclave B
 ***********************************************/
 
 sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
@@ -99,34 +99,14 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 }
 
 /***********************************************
-// 3. END : Create DH shared secret enclave B
+// 3. END: Create DH shared secret enclave B
 ***********************************************/
 
+/**************************************************
+// 3. BEGIN: SEND PSK from B to A after decryption
+***************************************************/
 
-sgx_status_t get_encrypted_message_psk(uint8_t* C){
-  sgx_status_t ret_status;
-  // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
-  // ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
-
-  // size of PSK is 11 bytes (hardcoded this in the .edl and named pipe)
-  char PSK_B[] = "I AM BOBOB";
-  uint8_t *p_src;
-  uint32_t p_len = sizeof(PSK_B);
-  p_src = (uint8_t *)malloc(p_len);
-  memcpy(p_src, PSK_B, p_len);
-
-  ret_status = sgx_aes_ctr_encrypt(&ctr_key, p_src, p_len, IV, 1, C);
-  return ret_status;
-}
-
-
-void fetch_iv(uint8_t* iv){
-  for (int j = 0; j <SGX_AESCTR_KEY_SIZE; j++){
-    iv[j] = IV[j];
-  }
-}
-
-
+// Decrypt received PSK from A
 sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
   uint8_t *updated_state = (uint8_t*) &updated_state;
   sgx_status_t ret_status;
@@ -157,6 +137,39 @@ sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
   
   return ret_status;
 }
+
+// Encrypt the PSK to send to A
+sgx_status_t get_encrypted_message_psk(uint8_t* C){
+  sgx_status_t ret_status;
+  // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
+  // ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
+
+  // size of PSK is 11 bytes (hardcoded this in the .edl and named pipe)
+  char PSK_B[] = "I AM BOBOB";
+  uint8_t *p_src;
+  uint32_t p_len = sizeof(PSK_B);
+  p_src = (uint8_t *)malloc(p_len);
+  memcpy(p_src, PSK_B, p_len);
+
+  ret_status = sgx_aes_ctr_encrypt(&ctr_key, p_src, p_len, IV, 1, C);
+  return ret_status;
+}
+
+// Utility function
+void fetch_iv(uint8_t* iv){
+  for (int j = 0; j <SGX_AESCTR_KEY_SIZE; j++){
+    iv[j] = IV[j];
+  }
+}
+
+/**************************************************
+// 3. END: SEND PSK from B to A after decryption
+***************************************************/
+
+/*************************************************************
+// 6 and 7. BEGIN: Enclave B decrypts, computes and encrypts
+**************************************************************/
+
 // Send the addition of the two numbers
 sgx_status_t send_response(uint8_t *challenge, uint8_t *response, uint8_t *iv){
   sgx_status_t ret_status;
@@ -184,7 +197,9 @@ sgx_status_t send_response(uint8_t *challenge, uint8_t *response, uint8_t *iv){
   return ret_status;
 }
 
-
+/*************************************************************
+// 6 and 7. END: Enclave B decrypts, computes and encrypts
+**************************************************************/
 
 sgx_status_t printSecret()
 {

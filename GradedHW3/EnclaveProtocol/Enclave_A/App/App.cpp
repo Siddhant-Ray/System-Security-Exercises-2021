@@ -156,6 +156,10 @@ void ocall_print_string(const char *str)
     printf("%s", str);
 }
 
+/***********************************************
+// 1. BEGIN: Send and receive public keys in A
+***********************************************/
+
 // Write the public key to the shared file system (named pipe)
 // https://www.geeksforgeeks.org/named-pipe-fifo-example-c-program/
 
@@ -186,6 +190,13 @@ sgx_ec256_public_t receive_public_key(){
   return public_key;
 }
 
+/***********************************************
+// 1. END: Send and receive public keys in A
+***********************************************/
+
+/***********************************************
+// 1. BEGIN: Send and receive PSK in A
+***********************************************/
 
 void encrypt_and_sendC(){
   uint8_t C;
@@ -249,6 +260,10 @@ void receive_and_checkC(){
 
 }
 
+/***********************************************
+// 1. END: Send and receive public keys in A
+***********************************************/
+
 
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[]) {
@@ -279,7 +294,7 @@ int SGX_CDECL main(int argc, char *argv[]) {
       print_error_message(enclave_status);
     }
     /***********************************************
-    // 1. BEGIN : SEND and RECEIVE public key App_A
+    // 1. BEGIN: SEND and RECEIVE public key App_A
     ***********************************************/
     //Sending public key from AppA
     send_public_key(public_key);
@@ -291,7 +306,7 @@ int SGX_CDECL main(int argc, char *argv[]) {
     printf("Received public key from AppB \n");
 
     /***********************************************
-    // 2. END : SEND and RECEIVE public key App_A
+    // 1. END: SEND and RECEIVE public key App_A
     ***********************************************/
 
     //Derive DH shared key and initialize IV on the enclave
@@ -305,7 +320,7 @@ int SGX_CDECL main(int argc, char *argv[]) {
     }
 
     /***********************************************
-    // 1. BEGIN : Encrypted PSK to App_B, from App_A
+    // 1. BEGIN: Encrypted PSK to App_B, from App_A
     ***********************************************/
     // Send PSK_A to AppB
     encrypt_and_sendC();
@@ -314,7 +329,7 @@ int SGX_CDECL main(int argc, char *argv[]) {
     receive_and_checkC();
 
     /***********************************************
-    // 1. END : Encrypted PSK to App_B, from App_A
+    // 1. END: Encrypted PSK to App_B, from App_A
     ***********************************************/
 
     /* Utilize edger8r attributes */

@@ -45,7 +45,7 @@ int printf(const char* fmt, ...)
 }
 
 /***********************************************
-// 2. BEGIN : Generate key pair enclave A
+// 2. BEGIN: Generate key pair enclave A
 ***********************************************/
 
 // https://github.com/intel/linux-sgx/blob/master/sdk/tlibcrypto/sgxssl/sgx_ecc256.cpp
@@ -70,11 +70,11 @@ sgx_status_t create_ecc(sgx_ec256_public_t *public_key) {
 }
 
 /***********************************************
-// 2. END : Generate key pair enclave A
+// 2. END: Generate key pair enclave A
 ***********************************************/
 
 /***********************************************
-// 3. BEGIN : Create DH shared secret enclave A
+// 3. BEGIN: Create DH shared secret enclave A
 ***********************************************/
 sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 
@@ -103,10 +103,14 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 }
 
 /***********************************************
-// 3. END : Create DH shared secret enclave A
+// 3. END: Create DH shared secret enclave A
 ***********************************************/
 
+/****************************************************************
+// 3. BEGIN: SEND PSK from A to B and verify what you get from B
+*****************************************************************/
 
+// Encrypt PSK to send to B
 sgx_status_t get_encrypted_message_psk(uint8_t* C){
   sgx_status_t ret_status;
   // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
@@ -123,13 +127,14 @@ sgx_status_t get_encrypted_message_psk(uint8_t* C){
   return ret_status;
 }
 
-
+// Utility function
 void fetch_iv(uint8_t* iv){
   for (int j = 0; j <SGX_AESCTR_KEY_SIZE; j++){
     iv[j] = IV[j];
   }
 }
 
+// Decrypt the received PSK from B
 sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
   uint8_t *updated_state = (uint8_t*) &updated_state;
   sgx_status_t ret_status;
@@ -144,6 +149,10 @@ sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
 
   return ret_status;
 }
+
+/*********************************************************
+// 4. BEGIN: Enclave A generates the challenge to be sent
+**********************************************************/
 
 // create the challenge in Enclave A
 sgx_status_t get_challenge(uint8_t *challenge){
@@ -164,6 +173,14 @@ sgx_status_t get_challenge(uint8_t *challenge){
   ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const unsigned char*) &ab, 3, IV, 1, challenge);
   return ret_status;
 }
+
+/*********************************************************
+// 4. END: Enclave A generates the challenge to be sent
+**********************************************************/
+
+/***********************************************************
+// 5. BEGIN: Enclave A decrypts the challenge and verifies
+************************************************************/
 
 // Check received from Enclave B
 sgx_status_t check_response(uint8_t *response, uint8_t* iv){
@@ -186,6 +203,10 @@ sgx_status_t check_response(uint8_t *response, uint8_t* iv){
   return ret_status;
 
 }
+
+/***********************************************************
+// 5. END: Enclave A decrypts the challenge and verifies
+************************************************************/
 
 sgx_status_t printSecret()
 {
