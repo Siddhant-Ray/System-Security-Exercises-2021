@@ -118,12 +118,14 @@ sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
 
   char PSK_A[] = "I AM ALICE";
   uint32_t p_len = sizeof(PSK_A);
-  // printf("%d\n",p_len);
+  
 
   ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
   // ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, updated_state);
 
-  /*printf("%s\n",(char*)updated_state);
+  /* DEBUG ONLY statements
+  // printf("%d\n",p_len);
+  printf("%s\n",(char*)updated_state);
   uint8_t k = 0;
   for(k= 0; k < (sizeof(ctr_key)/ sizeof(ctr_key[0])); k++){
     // printf("%d", ctr_key[k]);
@@ -146,9 +148,7 @@ sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
 // Encrypt the PSK to send to A
 sgx_status_t get_encrypted_message_psk(uint8_t* C){
   sgx_status_t ret_status;
-  // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
-  // ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
-
+  
   // size of PSK is 11 bytes (hardcoded this in the .edl and named pipe)
   char PSK_B[] = "I AM BOBOB";
   uint8_t *p_src;

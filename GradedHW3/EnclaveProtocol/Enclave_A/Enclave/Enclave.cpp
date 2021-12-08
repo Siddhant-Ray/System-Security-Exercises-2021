@@ -113,9 +113,7 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 // Encrypt PSK to send to B
 sgx_status_t get_encrypted_message_psk(uint8_t* C){
   sgx_status_t ret_status;
-  // uint8_t* PSK_A = (uint8_t*) "I AM ALICE";
-  // ret_status = sgx_aes_ctr_encrypt(&ctr_key, (const uint8_t*) PSK_A, (uint32_t)sizeof(uint8_t), IV, 1, C);
-
+  
   // size of PSK is 11 bytes (hardcoded this in the .edl and named pipe)
   char PSK_A[] = "I AM ALICE";
   uint8_t *p_src;
@@ -194,6 +192,7 @@ sgx_status_t check_response(uint8_t *response, uint8_t* iv){
   int actual_value = static_cast<int>(a) + static_cast<int>(b);
   int int_response = atoi((char *) ptr_response_recvd);
 
+  // Small bug here, need to fix if possible
   if (actual_value != int_response){
     printf("Response didn't match expected value...\n");
     ret_status = SGX_ERROR_INVALID_PARAMETER;
