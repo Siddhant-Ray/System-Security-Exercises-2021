@@ -1,3 +1,9 @@
+/*********************************************************
+*********************Siddhant Ray*************************
+******************Graded Homework 3***********************
+*********************************************************/
+
+
 ### Steps to run the code:
 
 The run script cleans and builds the app using make in SIM mode. Just run the run.sh file with ./run.sh in the 
