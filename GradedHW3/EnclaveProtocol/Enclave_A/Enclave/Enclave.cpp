@@ -134,13 +134,13 @@ void fetch_iv(uint8_t* iv){
 
 // Decrypt the received PSK from B
 sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
-  uint8_t *updated_state = (uint8_t*) &updated_state;
+  uint8_t *received_message = (uint8_t*) &received_message;
   sgx_status_t ret_status;
 
   char PSK_A[] = "I AM ALICE";
   uint32_t p_len = sizeof(PSK_A);
   //ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
-  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, updated_state);
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, received_message);
 
   if (ret_status != SGX_SUCCESS)
       return ret_status;

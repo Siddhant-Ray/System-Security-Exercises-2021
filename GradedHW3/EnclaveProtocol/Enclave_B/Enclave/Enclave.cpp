@@ -113,15 +113,15 @@ sgx_status_t derive_shared_key(sgx_ec256_public_t *public_key) {
 
 // Decrypt received PSK from A
 sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
-  uint8_t *updated_state = (uint8_t*) &updated_state;
+  uint8_t *received_message = (uint8_t*) &received_message;
   sgx_status_t ret_status;
 
   char PSK_A[] = "I AM ALICE";
   uint32_t p_len = sizeof(PSK_A);
   
-
-  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, updated_state);
-  // ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, updated_state);
+  // Somehow this works
+  ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, (uint32_t)sizeof(uint8_t), iv, 1, received_message);
+  // ret_status = sgx_aes_ctr_decrypt(&ctr_key, C, p_len, iv, 1, received_message);
 
   /* DEBUG ONLY statements
   // printf("%d\n",p_len);
@@ -139,7 +139,7 @@ sgx_status_t get_decrypted_message_psk(uint8_t* C, uint8_t* iv){
   if(ret_status != SGX_SUCCESS)
     return ret_status;
 
-  if (strcmp((char *)updated_state, (char *)(PSK_A)) != 0){
+  if (strcmp((char *)received_message, (char *)(PSK_A)) != 0){
     return SGX_ERROR_INVALID_PARAMETER;}
   
   return ret_status;
