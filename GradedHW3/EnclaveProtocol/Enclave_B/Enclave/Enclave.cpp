@@ -175,14 +175,20 @@ void fetch_iv(uint8_t* iv){
 // 6 and 7. BEGIN: Enclave B decrypts, computes and encrypts
 **************************************************************/
 
-// Send the addition of the two numbers
+// Decrypt the serialized two numnbers
 sgx_status_t receive_challenge(uint8_t *challenge, uint8_t *iv){
   sgx_status_t ret_status;
 
-  
   ret_status = sgx_aes_ctr_decrypt(&ctr_key, challenge, 3, iv, 1, ptr_received_challenge);
+
+  if(ret_status != SGX_SUCCESS)
+    return ret_status;
+  
+  return ret_status;
+
 }
 
+// Compute the addition of the two numbers
 sgx_status_t send_response(uint8_t *response){
   sgx_status_t ret_status;
   uint8_t a;

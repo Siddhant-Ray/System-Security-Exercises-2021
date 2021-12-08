@@ -293,12 +293,31 @@ void send_challenge(){
 }
 
 void verify_response(){
-    u_int8_t response;
+    
+    uint8_t response;
     sgx_status_t sgx_stat;
-    sgx_status_t ret_status;
+    sgx_status_t recv_status;
+    
+    uint8_t IV[16];
+    
+    int fd;
+    const char *myfifo = "/tmp/myfifo_responseb";
+    mkfifo(myfifo, 0666);
+    fd = open(myfifo, O_RDONLY);
 
-    // Need the IV of App B to decrypt
-    // for encrypt, only need self IV
+    read(fd, &response, 3 * sizeof(uint8_t));
+    read(fd, IV, 16 * sizeof(uint8_t));
+
+    close(fd);
+
+    recv_status = check_response(global_eid, &sgx_stat, &response, IV);
+
+    if (recv_status != SGX_SUCCESS) {
+    printf("Decrypting the response worked...\n");
+    print_error_message(recv_status);
+  }
+  else
+    printf("Decrypting the response didn't work...\n");
 
 }
 
@@ -370,7 +389,8 @@ int SGX_CDECL main(int argc, char *argv[]) {
     // 1. END: Encrypted PSK to App_B, from App_A
     ***********************************************/
 
-    // send_challenge();
+    send_challenge();
+    verify_response();
 
     /* Utilize edger8r attributes */
     edger8r_array_attributes();

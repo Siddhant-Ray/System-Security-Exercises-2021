@@ -262,16 +262,12 @@ void receive_and_checkC(){
 // 1. END: Send and receive PSK in B
 ***********************************************/
 
-/*void receive_challenge_and_send_response(){
+void receive_challenge(){
     u_int8_t challenge;
-    uint8_t response;
     sgx_status_t sgx_stat;
     sgx_status_t recv_status;
-    sgx_status_t send_status;
     
-    uint8_t cross_IV[16];
-    uint8_t self_IV[16];
-    fetch_iv(global_eid, self_IV);
+    uint8_t IV[16];
     
     int fd;
     const char *myfifo = "/tmp/myfifo_challengea";
@@ -279,17 +275,51 @@ void receive_and_checkC(){
     fd = open(myfifo, O_RDONLY);
 
     read(fd, &challenge, 3 * sizeof(uint8_t));
-    read(fd, cross_IV, 16 * sizeof(uint8_t));
+    read(fd, IV, 16 * sizeof(uint8_t));
 
     close(fd);
+
+    recv_status = receive_challenge(global_eid, &sgx_stat, &challenge, IV);
 
     if (recv_status == SGX_SUCCESS)
     printf("Receiving challenge with rand worked...\n");
     else{
     printf("Receiving challenge with rand failed...\n");
-    print_error_message(send_status);  
+    print_error_message(recv_status);  
     }
-}*/
+}
+
+void send_response(){
+
+    uint8_t response[3];
+    uint8_t *ptr_response = (uint8_t *) & response;
+    uint8_t IV[16];
+  
+    sgx_status_t sgx_stat;
+    fetch_iv(global_eid, IV);
+    
+    sgx_status_t send_status;
+    // Send response in an encrypted form
+    send_status = send_response(global_eid, &sgx_stat, ptr_response);
+
+    if (send_status == SGX_SUCCESS)
+    printf("Sending response worked...\n");
+    else{
+    printf("Sending response failed...\n");
+    print_error_message(send_status);
+    }
+
+    int fd;
+    const char *myfifo = "/tmp/myfifo_responseb";
+    mkfifo(myfifo, 0666);
+    fd = open(myfifo, O_WRONLY);
+
+    write(fd, ptr_response, 3 * sizeof(uint8_t));
+    write(fd, IV, 16 * sizeof(uint8_t));
+
+    close(fd);
+
+}
 
 
 /* Application entry */
@@ -356,6 +386,11 @@ int SGX_CDECL main(int argc, char *argv[]) {
     /***********************************************
     // 1. END: Encrypted PSK to App_A, from App_B
     ***********************************************/
+
+    receive_challenge();
+
+    send_response();
+
 
     /* Utilize edger8r attributes */
     edger8r_array_attributes();
